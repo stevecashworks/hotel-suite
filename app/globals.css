@@ -1,6 +1,12 @@
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
+ --header-curve:15% 10% 49% 52% / 0% 0% 49% 67% ;
+ --light-bg:#f6f6f6;
+ --gray-bg:#cccccc;
+ --dark-bg:#252525;
+ --moon-bg:#c9beb3;
+ --nude-bg:#70553a;
 }
 
 html {

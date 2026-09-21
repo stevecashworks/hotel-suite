@@ -1,0 +1,183 @@
+.showcase {
+  display: flex;
+  align-items: stretch;
+  min-height: 560px;
+  background: #f5f2ed;
+  color: #24211e;
+}
+
+.copy {
+  width: 40%;
+  padding: 104px clamp(2rem, 7vw, 7rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.eyebrow {
+  color: #8b6a4c;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.copy h2 {
+  max-width: 560px;
+  margin: 1.6rem 0 1.2rem;
+  font-size: clamp(2.2rem, 3.5vw, 4.2rem);
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+}
+
+.description {
+  max-width: 460px;
+  color: #706b65;
+  font-size: 1.02rem;
+  line-height: 1.8;
+}
+
+.exploreLink {
+  width: fit-content;
+  margin-top: 2rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid #8b6a4c;
+  color: #5f452e;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.carousel {
+  width: 60%;
+  padding: 50px 0 34px;
+  overflow: hidden;
+}
+
+.imageFrame {
+  position: relative;
+  height: 430px;
+  margin-left: 1rem;
+  overflow: hidden;
+  background: #c7b9aa;
+}
+
+.roomImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.04);
+  transition: opacity 600ms ease, transform 800ms ease;
+}
+
+.roomImage.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.roomInfo {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  min-width: 250px;
+  padding: 1.4rem 2rem;
+  color: white;
+  background: rgba(28, 24, 20, 0.72);
+}
+
+.roomInfo p {
+  margin-bottom: 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.roomInfo h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.65rem;
+  font-weight: 400;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1.25rem 1.5rem 0 1rem;
+}
+
+.counter {
+  color: #8d847c;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+}
+
+.counter strong {
+  color: #28231e;
+  font-size: 1rem;
+}
+
+.buttons {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.buttons button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid #b9afa5;
+  background: transparent;
+  color: #4a3d32;
+  cursor: pointer;
+}
+
+.buttons button:hover {
+  background: #70553a;
+  border-color: #70553a;
+  color: white;
+}
+
+@media (max-width: 760px) {
+  .showcase {
+    flex-direction: column;
+  }
+
+  .copy,
+  .carousel {
+    width: 100%;
+  }
+
+  .copy {
+    padding: 4rem 2rem 3rem;
+  }
+
+  .carousel {
+    padding: 0 0 2rem;
+  }
+
+  .imageFrame {
+    height: 360px;
+    margin-left: 0;
+  }
+
+  .controls {
+    margin-left: 1.25rem;
+  }
+}

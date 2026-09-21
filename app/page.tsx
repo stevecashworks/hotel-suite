@@ -1,522 +1,370 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BedDouble,
+  Camera,
+  Globe,
+  MapPin,
+  PhoneCall,
+  Play,
+  ShieldCheck,
+  Sparkles,
+  UtensilsCrossed,
+  Waves,
+} from "lucide-react";
+import { IoIosSearch } from "react-icons/io";
+import { BsCalendar2Date } from "react-icons/bs";
+import About from "../components/about";
+import EventShowcase from "../components/eventShowcase";
+import SlideShow from "../components/slideShow";
+import { hotelLocation } from "../lib/hotel-data";
 import styles from "./page.module.css";
 
-type RoomStatus = "available" | "booked" | "maintenance";
-
-type Room = {
-  id: number;
-  number: string;
-  type: string;
-  floor: number;
-  price: number;
-  status: RoomStatus;
-  guest?: string;
-  availableUntil?: string;
-};
-
-type InventoryItem = {
-  id: number;
-  name: string;
-  category: "food" | "bar" | "amenity";
-  stock: number;
-  price: number;
-};
-
-type Customer = {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  room: string;
-  checkIn: string;
-  source: string;
-};
-
-const hotelLocation = {
-  name: "Hotel Suite Marina",
-  address: "123 Harbor Blvd, Miami Beach, FL",
-  mapsQuery: "123 Harbor Blvd Miami Beach FL",
-};
-
-const initialRooms: Room[] = [
-  { id: 1, number: "101", type: "Deluxe King", floor: 1, price: 220, status: "available" },
-  { id: 2, number: "102", type: "Deluxe King", floor: 1, price: 220, status: "available" },
-  { id: 3, number: "201", type: "Ocean View", floor: 2, price: 310, status: "booked", guest: "Amelia M.", availableUntil: "2026-09-15T18:00:00" },
-  { id: 4, number: "202", type: "Ocean View", floor: 2, price: 310, status: "available" },
-  { id: 5, number: "301", type: "Suite", floor: 3, price: 480, status: "maintenance" },
-  { id: 6, number: "302", type: "Suite", floor: 3, price: 480, status: "available" },
+const linksData = [
+  { path: "#home", text: "Home" },
+  { path: "#about", text: "About" },
+  { path: "#services", text: "Services" },
+  { path: "#rooms", text: "Rooms" },
 ];
 
-const initialInventory: InventoryItem[] = [
-  { id: 1, name: "Breakfast Bundle", category: "food", stock: 20, price: 18 },
-  { id: 2, name: "Signature Coffee", category: "food", stock: 12, price: 6 },
-  { id: 3, name: "Sparkling Water", category: "bar", stock: 25, price: 5 },
-  { id: 4, name: "Mini Bar Pack", category: "bar", stock: 8, price: 22 },
-  { id: 5, name: "Laundry Kit", category: "amenity", stock: 6, price: 14 },
+const servicesData = [
+  {
+    icon: Sparkles,
+    title: "Signature Suites",
+    description:
+      "Thoughtfully designed rooms blending comfort, privacy, and tailored details for memorable stays.",
+  },
+  {
+    icon: Waves,
+    title: "Spa & Wellness",
+    description:
+      "Immersive rituals and restorative experiences to recharge body, mind, and spirit.",
+  },
+  {
+    icon: UtensilsCrossed,
+    title: "Chef-Led Dining",
+    description:
+      "Seasonal menus and curated tastings crafted by celebrated culinary talent.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Private Concierge",
+    description:
+      "Discreet, attentive support for airport transfers, excursions, and bespoke requests.",
+  },
 ];
 
-const initialCustomers: Customer[] = [
-  { id: 1, name: "Amelia Morgan", email: "amelia@example.com", phone: "+1 305 555 0140", room: "201", checkIn: "2026-09-14", source: "QR check-in" },
-  { id: 2, name: "Daniel Ross", email: "daniel@example.com", phone: "+1 305 555 1017", room: "401", checkIn: "2026-09-13", source: "Guest portal" },
+const socialLinks = [
+  { label: "Instagram", href: "#", icon: Camera },
+  { label: "Facebook", href: "#", icon: Globe },
+  { label: "YouTube", href: "#", icon: Play },
 ];
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
+const testimonials = [
+  {
+    quote:
+      "Every detail felt considered. The service was warm, the suite was breathtaking, and the entire stay felt effortlessly luxurious.",
+    name: "Ariana W.",
+    role: "Wellness Retreat Guest",
+    image:
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    quote:
+      "From the welcome drink to the private dining experience, Hotelier delivered an unforgettable escape that exceeded every expectation.",
+    name: "Marcus L.",
+    role: "Weekend Traveller",
+    image:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    quote:
+      "This was the kind of place where you can truly unwind. The staff anticipated everything, and the design was stunning from every angle.",
+    name: "Sophia R.",
+    role: "Anniversary Stay",
+    image:
+      "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    quote:
+      "The suite felt private and elevated, and every recommendation from the concierge made our trip feel bespoke from beginning to end.",
+    name: "Daniel K.",
+    role: "Business Guest",
+    image:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    quote:
+      "We booked a long weekend and left feeling completely restored. The spa, rooms, and fine dining were all exceptional.",
+    name: "Olivia T.",
+    role: "Spa Weekend Guest",
+    image:
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    quote:
+      "A true five-star experience with a warm, personal touch. It was the perfect blend of ceremony, comfort, and quiet luxury.",
+    name: "James C.",
+    role: "Luxury Escape Guest",
+    image:
+      "https://images.unsplash.com/photo-1504593811423-6dd665756598?auto=format&fit=crop&w=900&q=80",
+  },
+];
 
-const makeReservationDate = (offsetDays: number) => {
-  const date = new Date();
-  date.setDate(date.getDate() + offsetDays);
-  return date.toISOString().slice(0, 10);
-};
-
-const QR_SIZE = 21;
-const qrCells = Array.from({ length: QR_SIZE * QR_SIZE }, (_, index) => {
-  const row = Math.floor(index / QR_SIZE);
-  const col = index % QR_SIZE;
-  const isFinder =
-    (row < 7 && col < 7) ||
-    (row < 7 && col >= QR_SIZE - 7) ||
-    (row >= QR_SIZE - 7 && col < 7);
-  if (isFinder) {
-    const finderCell = row < 7 && col < 7 ? row > 0 && row < 6 && col > 0 && col < 6 : true;
-    return finderCell && row > 0 && col > 0 && row < 6 && col < 6 ? 1 : (row > 0 && col > 0 ? 1 : 0);
-  }
-  return (row + col + (row * 2)) % 3 === 0 ? 1 : 0;
-});
-
-export default function Home() {
-  const [rooms, setRooms] = useState<Room[]>(initialRooms);
-  const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
-  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
-  const [selectedRoomId, setSelectedRoomId] = useState<number>(2);
-  const [reservation, setReservation] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    roomType: "Deluxe King",
-    nights: 2,
-    paymentCard: "4242 4242 4242 4242",
-  });
-  const [serviceOrder, setServiceOrder] = useState<number>(1);
-  const [lastScan, setLastScan] = useState("Guest QR ready for check-in");
-  const [statusNote, setStatusNote] = useState("Room is available for reservation");
-  const [paymentStatus, setPaymentStatus] = useState("Pending");
-
-  const selectedRoom = rooms.find((room) => room.id === selectedRoomId) ?? rooms[0];
-
-  const occupancyRate = useMemo(
-    () => Math.round(((rooms.filter((room) => room.status === "booked").length / rooms.length) * 100)),
-    [rooms]
-  );
-
-  const totalInventoryUnits = useMemo(
-    () => inventory.reduce((sum, item) => sum + item.stock, 0),
-    [inventory]
-  );
-
-  const totalRoomRevenue = useMemo(
-    () => rooms.filter((room) => room.status === "booked").reduce((sum, room) => sum + room.price, 0),
-    [rooms]
-  );
+export default function Homepage() {
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      setRooms((currentRooms) =>
-        currentRooms.map((room) => {
-          if (room.status === "booked" && room.availableUntil && new Date(room.availableUntil) <= now) {
-            return { ...room, status: "available", guest: undefined, availableUntil: undefined };
-          }
-          return room;
-        })
-      );
-    }, 30000);
+    const interval = setInterval(() => {
+      setActiveTestimonial((current) => (current + 1) % testimonials.length);
+    }, 5000);
 
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, []);
 
-  const roomOptions = rooms.filter((room) => room.status === "available");
+  const visibleTestimonials = Array.from({ length: 2 }, (_, index) => {
+    return testimonials[(activeTestimonial + index) % testimonials.length];
+  });
 
-  const handleReserve = () => {
-    const room = rooms.find((room) => room.id === selectedRoomId);
-    if (!room || room.status !== "available") {
-      setStatusNote("Selected room is not currently available. Please choose a different room.");
-      return;
-    }
-
-    const availableUntil = new Date();
-    availableUntil.setDate(availableUntil.getDate() + reservation.nights);
-
-    setRooms((currentRooms) =>
-      currentRooms.map((currentRoom) =>
-        currentRoom.id === room.id
-          ? { ...currentRoom, status: "booked", guest: reservation.name || "Guest", availableUntil: availableUntil.toISOString() }
-          : currentRoom
-      )
-    );
-
-    const guestAlreadyExists = customers.some(
-      (customer) => customer.email.toLowerCase() === reservation.email.toLowerCase() || customer.phone === reservation.phone
-    );
-
-    if (!guestAlreadyExists && reservation.name && reservation.email) {
-      setCustomers((currentCustomers) => [
-        {
-          id: Date.now(),
-          name: reservation.name,
-          email: reservation.email,
-          phone: reservation.phone,
-          room: room.number,
-          checkIn: makeReservationDate(0),
-          source: "Reservation form",
-        },
-        ...currentCustomers,
-      ]);
-    }
-
-    setStatusNote(`${reservation.name || "Guest"} is checked in to room ${room.number} until ${availableUntil.toISOString().slice(0, 10)}.`);
-    setPaymentStatus("Paid");
+  const moveTestimonial = (direction: number) => {
+    setActiveTestimonial((current) => {
+      return (current + direction + testimonials.length) % testimonials.length;
+    });
   };
 
-  const handleQueueScan = () => {
-    const guest = {
-      id: Date.now(),
-      name: reservation.name || "New Guest",
-      email: reservation.email || `guest${Date.now()}@hotel-suite.com`,
-      phone: reservation.phone || "+1 305 555 0000",
-      room: selectedRoom?.number || "TBD",
-      checkIn: makeReservationDate(0),
-      source: "QR check-in",
-    };
-
-    const exists = customers.some(
-      (customer) => customer.email.toLowerCase() === guest.email.toLowerCase() || customer.phone === guest.phone
-    );
-
-    if (!exists) {
-      setCustomers((currentCustomers) => [guest, ...currentCustomers]);
-      setLastScan(`QR scan registered ${guest.name} as a new customer.`);
-    } else {
-      setLastScan(`QR scan matched an existing guest profile for ${guest.name}.`);
-    }
+  const handleVisitClick = () => {
+    const destination = encodeURIComponent(hotelLocation.mapsQuery);
+    const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+    window.open(directionsUrl, "_blank", "noopener,noreferrer");
   };
-
-  const handleInventoryChange = (itemId: number, delta: number) => {
-    setInventory((currentItems) =>
-      currentItems.map((item) =>
-        item.id === itemId ? { ...item, stock: Math.max(0, item.stock + delta) } : item
-      )
-    );
-  };
-
-  const handleServiceOrder = () => {
-    const item = inventory.find((entry) => entry.id === serviceOrder);
-    if (!item || item.stock <= 0) {
-      setStatusNote("Selected item is currently unavailable for service delivery.");
-      return;
-    }
-
-    setInventory((currentItems) =>
-      currentItems.map((entry) =>
-        entry.id === serviceOrder ? { ...entry, stock: Math.max(0, entry.stock - 1) } : entry
-      )
-    );
-    setStatusNote(`${item.name} was ordered for room ${selectedRoom?.number ?? "guest"}.`);
-  };
-
-  const handleAdminRoomToggle = (roomId: number) => {
-    setRooms((currentRooms) =>
-      currentRooms.map((room) => {
-        if (room.id !== roomId) {
-          return room;
-        }
-
-        const nextStatus: RoomStatus = room.status === "maintenance" ? "available" : "maintenance";
-        return { ...room, status: nextStatus, guest: nextStatus === "maintenance" ? room.guest : undefined };
-      })
-    );
-  };
-
-  const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotelLocation.mapsQuery)}`;
 
   return (
-    <main className={styles.page}>
-      <div className={styles.shell}>
-        <header className={styles.header}>
-          <div>
-            <p className={styles.eyebrow}>Hospitality operations</p>
-            <h1>{hotelLocation.name}</h1>
-          </div>
-          <div className={styles.headerActions}>
-            <a href={mapLink} target="_blank" rel="noreferrer" className={styles.navButton}>
-              Navigate to hotel
-            </a>
-            <button type="button" className={styles.primaryButton}>
-              New booking
+    <div className={styles.container}>
+      <div className={styles.heroAndHeader}>
+        <div className={styles.shade}></div>
+        <div className={styles.content}>
+          <div className={styles.header}>
+            <p className={styles.logo}>Hotelier.</p>
+            <div className={styles.links}>
+              {linksData.map((link) => {
+                return (
+                  <a key={link.text} href={link.path} className={styles.link}>
+                    {link.text}
+                  </a>
+                );
+              })}
+            </div>
+            <button type="button" className={styles.button} onClick={handleVisitClick}>
+              Visit
+              <BedDouble size={18} style={{ marginLeft: "10px" }} />
             </button>
           </div>
-        </header>
-
-        <section className={styles.statsGrid}>
-          <div className={styles.statCard}>
-            <span>Occupancy</span>
-            <strong>{occupancyRate}%</strong>
-            <p>{rooms.filter((room) => room.status === "booked").length} booked rooms</p>
+          <div className={styles.heroText}>Enjoy the best experience of your life.</div>
+          <div className={styles.heroUtility}>
+            <div className={styles.utilitySubCon}>
+              <label htmlFor="searchInput">
+                <IoIosSearch style={{ color: "var(--bg-gray)" }} />
+              </label>
+              <input
+                id="searchInput"
+                className={styles.searchInput}
+                placeholder="Search..."
+              />
+            </div>
+            <div className={styles.utilitySubCon}>
+              <label htmlFor="dateInput">
+                <BsCalendar2Date style={{ color: "var(--bg-gray)" }} />
+              </label>
+              <input
+                className={styles.dateInput}
+                placeholder="Select Date..."
+                type="date"
+              />
+            </div>
+            <div className={styles.utilitySubCon}>
+              <label htmlFor="dateInputTwo">
+                <BsCalendar2Date style={{ color: "var(--bg-gray)" }} />
+              </label>
+              <input
+                id="dateInputTwo"
+                className={styles.dateInput}
+                placeholder="Select Date..."
+                type="date"
+              />
+            </div>
+            <button className={styles.heroButton}>Search</button>
           </div>
-          <div className={styles.statCard}>
-            <span>Available rooms</span>
-            <strong>{roomOptions.length}</strong>
-            <p>{rooms.filter((room) => room.status === "maintenance").length} under maintenance</p>
+          <div className={styles.heroBottom}>
+            <div className={styles.quote}>
+              <div className={styles.line}></div>
+              <p className={styles.quoteText}>
+                We provide the best luxury accommodation, tailored specifically
+                for your needs.
+              </p>
+            </div>
           </div>
-          <div className={styles.statCard}>
-            <span>Inventory count</span>
-            <strong>{totalInventoryUnits}</strong>
-            <p>Items in stock</p>
-          </div>
-          <div className={styles.statCard}>
-            <span>Projected revenue</span>
-            <strong>{formatCurrency(totalRoomRevenue)}</strong>
-            <p>Current active bookings</p>
-          </div>
-        </section>
-
-        <div className={styles.contentGrid}>
-          <section className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h2>Reservation system</h2>
-              <span className={styles.badge}>Live</span>
-            </div>
-
-            <div className={styles.formGrid}>
-              <label>
-                Guest name
-                <input
-                  value={reservation.name}
-                  onChange={(event) => setReservation((current) => ({ ...current, name: event.target.value }))}
-                  placeholder="Guest full name"
-                />
-              </label>
-
-              <label>
-                Email
-                <input
-                  type="email"
-                  value={reservation.email}
-                  onChange={(event) => setReservation((current) => ({ ...current, email: event.target.value }))}
-                  placeholder="guest@email.com"
-                />
-              </label>
-
-              <label>
-                Phone
-                <input
-                  value={reservation.phone}
-                  onChange={(event) => setReservation((current) => ({ ...current, phone: event.target.value }))}
-                  placeholder="Mobile number"
-                />
-              </label>
-
-              <label>
-                Room type
-                <select
-                  value={reservation.roomType}
-                  onChange={(event) => setReservation((current) => ({ ...current, roomType: event.target.value }))}
-                >
-                  <option>Deluxe King</option>
-                  <option>Ocean View</option>
-                  <option>Suite</option>
-                </select>
-              </label>
-
-              <label>
-                Booking nights
-                <input
-                  type="number"
-                  min={1}
-                  value={reservation.nights}
-                  onChange={(event) =>
-                    setReservation((current) => ({
-                      ...current,
-                      nights: Number(event.target.value) || 1,
-                    }))
-                  }
-                />
-              </label>
-
-              <label>
-                Card details
-                <input
-                  value={reservation.paymentCard}
-                  onChange={(event) =>
-                    setReservation((current) => ({ ...current, paymentCard: event.target.value }))
-                  }
-                />
-              </label>
-            </div>
-
-            <div className={styles.roomList}>
-              {rooms.map((room) => (
-                <button
-                  key={room.id}
-                  type="button"
-                  className={`${styles.roomCard} ${selectedRoomId === room.id ? styles.roomCardSelected : ""} ${room.status === "booked" ? styles.roomCardBooked : ""}`}
-                  onClick={() => setSelectedRoomId(room.id)}
-                >
-                  <div>
-                    <strong>Room {room.number}</strong>
-                    <span>{room.type}</span>
-                  </div>
-                  <div className={styles.roomMeta}>
-                    <small>{room.status}</small>
-                    <b>{formatCurrency(room.price)}/night</b>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <div className={styles.actionRow}>
-              <button type="button" className={styles.primaryButton} onClick={handleReserve}>
-                Confirm reservation
-              </button>
-              <button type="button" className={styles.secondaryButton} onClick={() => setPaymentStatus("Paid") }>
-                Pay now
-              </button>
-            </div>
-
-            <div className={styles.statusBar}>
-              <span className={styles.pill}>Payment: {paymentStatus}</span>
-              <span className={styles.statusText}>{statusNote}</span>
-            </div>
-          </section>
-
-          <aside className={styles.sideStack}>
-            <section className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <h2>Guest QR</h2>
-                <span className={styles.badge}>Entrance</span>
-              </div>
-
-              <div className={styles.qrWrapper}>
-                <svg viewBox="0 0 21 21" className={styles.qrCode} role="img" aria-label="Guest QR code">
-                  {qrCells.map((cell, index) => {
-                    const row = Math.floor(index / QR_SIZE);
-                    const col = index % QR_SIZE;
-                    const isDark = cell === 1;
-                    return (
-                      <rect
-                        key={`${row}-${col}`}
-                        x={col}
-                        y={row}
-                        width={1}
-                        height={1}
-                        fill={isDark ? "#111827" : "#ffffff"}
-                      />
-                    );
-                  })}
-                </svg>
-              </div>
-
-              <button type="button" className={styles.secondaryButton} onClick={handleQueueScan}>
-                Simulate guest scan
-              </button>
-
-              <p className={styles.scanText}>{lastScan}</p>
-            </section>
-
-            <section className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <h2>Customers</h2>
-                <span className={styles.badge}>{customers.length}</span>
-              </div>
-
-              <ul className={styles.customerList}>
-                {customers.slice(0, 4).map((customer) => (
-                  <li key={customer.id}>
-                    <div>
-                      <strong>{customer.name}</strong>
-                      <small>{customer.email}</small>
-                    </div>
-                    <span>{customer.room}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </aside>
         </div>
 
-        <section className={styles.bottomGrid}>
-          <div className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h2>Inventory management</h2>
-              <span className={styles.badge}>Restock</span>
-            </div>
-
-            <div className={styles.inventoryList}>
-              {inventory.map((item) => (
-                <div className={styles.inventoryItem} key={item.id}>
-                  <div>
-                    <strong>{item.name}</strong>
-                    <small>
-                      {item.category} · {formatCurrency(item.price)}
-                    </small>
-                  </div>
-                  <div className={styles.inventoryControls}>
-                    <button type="button" onClick={() => handleInventoryChange(item.id, -1)}>
-                      −
-                    </button>
-                    <span>{item.stock}</span>
-                    <button type="button" onClick={() => handleInventoryChange(item.id, 1)}>
-                      +
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h2>Room service / bar</h2>
-              <span className={styles.badge}>Availability</span>
-            </div>
-
-            <label className={styles.selectLabel}>
-              Select item
-              <select value={serviceOrder} onChange={(event) => setServiceOrder(Number(event.target.value))}>
-                {inventory.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} ({item.stock} left)
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <button type="button" className={styles.primaryButton} onClick={handleServiceOrder}>
-              Send order by QR scan
-            </button>
-
-            <div className={styles.adminBox}>
-              <h3>Admin room availability</h3>
-              {rooms.map((room) => (
-                <div key={room.id} className={styles.adminRow}>
-                  <span>
-                    {room.number} · {room.type}
-                  </span>
-                  <button type="button" onClick={() => handleAdminRoomToggle(room.id)}>
-                    {room.status === "maintenance" ? "Set available" : "Set maintenance"}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <video className={styles.heroVideo} autoPlay muted loop>
+          <source src="/hero.mp4" type="video/mp4" />
+        </video>
       </div>
-    </main>
+
+      <About />
+      <EventShowcase />
+      <SlideShow />
+
+      <section className={styles.servicesSection} id="services">
+        <div className={styles.servicesHeader}>
+          <p className={styles.sectionEyebrow}>Our Signature Experiences</p>
+          <h2>Luxury designed around the way you want to feel.</h2>
+        </div>
+
+        <div className={styles.servicesGrid}>
+          {servicesData.map(({ icon: Icon, title, description }) => (
+            <article key={title} className={styles.serviceCard}>
+              <div className={styles.serviceIcon}>
+                <Icon size={24} />
+              </div>
+              <h3>{title}</h3>
+              <p>{description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.testimonialsSection}>
+        <div className={styles.testimonialsHeader}>
+          <p className={styles.sectionEyebrow}>Guest Reviews</p>
+          <h2>What our guests remember most.</h2>
+        </div>
+
+        <div className={styles.testimonialsCarousel}>
+          <button
+            type="button"
+            className={styles.carouselButton}
+            onClick={() => moveTestimonial(-1)}
+            aria-label="Previous testimonial"
+          >
+            <ArrowLeft size={18} />
+          </button>
+
+          <div className={styles.testimonialGrid}>
+            {visibleTestimonials.map((testimonial) => (
+              <article key={`${testimonial.name}-${testimonial.role}`} className={styles.testimonialCard}>
+                <img
+                  src={testimonial.image}
+                  alt={testimonial.name}
+                  className={styles.testimonialImage}
+                />
+
+                <div className={styles.testimonialContent}>
+                  <div className={styles.rating}>★★★★★</div>
+                  <p className={styles.testimonialQuote}>“{testimonial.quote}”</p>
+
+                  <div className={styles.authorRow}>
+                    <div className={styles.authorInfo}>
+                      <strong>{testimonial.name}</strong>
+                      <span>{testimonial.role}</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className={styles.carouselButton}
+            onClick={() => moveTestimonial(1)}
+            aria-label="Next testimonial"
+          >
+            <ArrowRight size={18} />
+          </button>
+        </div>
+
+        <div className={styles.carouselDots}>
+          {testimonials.map((testimonial, index) => (
+            <button
+              key={testimonial.name}
+              type="button"
+              className={`${styles.dot} ${
+                index === activeTestimonial ? styles.dotActive : ""
+              }`}
+              onClick={() => setActiveTestimonial(index)}
+              aria-label={`Go to testimonial ${index + 1}`}
+            />
+          ))}
+        </div>
+      </section>
+
+      <footer className={styles.footer}>
+        <div className={styles.footerTop}>
+          <div className={styles.footerColumn}>
+            <p className={styles.footerBrand}>Hotelier.</p>
+            <p className={styles.footerText}>
+              Contemporary luxury for unforgettable escapes, intimate moments,
+              and effortless indulgence.
+            </p>
+          </div>
+
+          <div className={styles.footerColumn}>
+            <h4>Explore</h4>
+            <ul>
+              <li>
+                <a href="#about">About</a>
+              </li>
+              <li>
+                <a href="#rooms">Rooms</a>
+              </li>
+              <li>
+                <a href="#services">Services</a>
+              </li>
+              <li>
+                <a href="#booking">Booking</a>
+              </li>
+            </ul>
+          </div>
+
+          <div className={styles.footerColumn}>
+            <h4>Contact</h4>
+            <ul>
+              <li>
+                <MapPin size={14} />
+                <span>27 Ocean Crest, Maldives</span>
+              </li>
+              <li>
+                <PhoneCall size={14} />
+                <span>+1 (800) 555-0148</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className={styles.footerColumn}>
+            <h4>Follow</h4>
+            <div className={styles.socialList}>
+              {socialLinks.map(({ label, href, icon: Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  className={styles.socialLink}
+                >
+                  <Icon size={16} />
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.footerBottom}>
+          <span>© 2026 Hotelier</span>
+          <span>Private luxury experiences</span>
+        </div>
+      </footer>
+    </div>
   );
 }
