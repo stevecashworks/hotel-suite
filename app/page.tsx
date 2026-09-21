@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -116,6 +116,9 @@ const testimonials = [
 
 export default function Homepage() {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const [isAssetsReady, setIsAssetsReady] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -123,6 +126,39 @@ export default function Homepage() {
     }, 5000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!isVideoReady) return;
+
+    const finishLoading = async () => {
+      if (typeof document !== "undefined" && "fonts" in document) {
+        await document.fonts.ready;
+      }
+      setIsAssetsReady(true);
+    };
+
+    void finishLoading();
+  }, [isVideoReady]);
+
+  useEffect(() => {
+    if (document.readyState === "complete" && isVideoReady) {
+      setIsAssetsReady(true);
+    }
+  }, [isVideoReady]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleVideoLoad = () => setIsVideoReady(true);
+    video.addEventListener("loadeddata", handleVideoLoad);
+    video.addEventListener("canplay", handleVideoLoad);
+
+    return () => {
+      video.removeEventListener("loadeddata", handleVideoLoad);
+      video.removeEventListener("canplay", handleVideoLoad);
+    };
   }, []);
 
   const visibleTestimonials = Array.from({ length: 2 }, (_, index) => {
@@ -140,6 +176,14 @@ export default function Homepage() {
     const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
     window.open(directionsUrl, "_blank", "noopener,noreferrer");
   };
+
+  if (!isAssetsReady) {
+    return (
+      <div className={styles.loadingScreen} aria-live="polite" aria-busy="true">
+        <div className={styles.spinner} aria-label="Loading hotel experience" />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
@@ -208,7 +252,15 @@ export default function Homepage() {
           </div>
         </div>
 
-        <video className={styles.heroVideo} autoPlay muted loop>
+        <video
+          ref={videoRef}
+          className={styles.heroVideo}
+          autoPlay
+          muted
+          loop
+          preload="auto"
+          playsInline
+        >
           <source src="/hero.mp4" type="video/mp4" />
         </video>
       </div>
