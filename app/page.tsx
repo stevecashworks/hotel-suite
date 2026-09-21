@@ -117,7 +117,6 @@ const testimonials = [
 export default function Homepage() {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [isAssetsReady, setIsAssetsReady] = useState(false);
-  const [isVideoReady, setIsVideoReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -129,60 +128,58 @@ export default function Homepage() {
   }, []);
 
   useEffect(() => {
-    const finishLoading = async () => {
-      if (typeof document !== "undefined" && "fonts" in document) {
-        await document.fonts.ready;
-      }
+    let settled = false;
+    const video = videoRef.current;
+
+    const markReady = () => {
+      if (settled) return;
+      settled = true;
       setIsAssetsReady(true);
     };
 
-    const video = videoRef.current;
-    const handleVideoReady = () => {
-      setIsVideoReady(true);
-      if (document.readyState === "complete") {
-        void finishLoading();
-      }
-    };
+    const maybeReady = () => {
+      if (!video || video.readyState < 2) return;
 
-    const handleFallback = () => {
-      setIsVideoReady(true);
-      void finishLoading();
+      if (typeof document !== "undefined" && "fonts" in document) {
+        if (document.fonts.status !== "loaded" && document.fonts.status !== "loading") {
+          markReady();
+          return;
+        }
+      }
+
+      if (typeof document !== "undefined" && "fonts" in document) {
+        document.fonts.ready.then(markReady).catch(markReady);
+        return;
+      }
+
+      markReady();
     };
 
     if (video) {
-      video.addEventListener("loadeddata", handleVideoReady);
-      video.addEventListener("canplay", handleVideoReady);
-      video.addEventListener("error", handleFallback);
+      if (video.readyState >= 2) {
+        maybeReady();
+      } else {
+        video.addEventListener("loadeddata", maybeReady, { once: true });
+        video.addEventListener("canplay", maybeReady, { once: true });
+        video.addEventListener("error", markReady, { once: true });
+      }
     }
 
-    const fallbackTimer = window.setTimeout(handleFallback, 5000);
-
-    if (document.readyState === "complete") {
-      void finishLoading();
+    if (typeof document !== "undefined" && "fonts" in document) {
+      document.fonts.ready.then(maybeReady).catch(markReady);
     }
+
+    const timeoutId = window.setTimeout(markReady, 7000);
 
     return () => {
       if (video) {
-        video.removeEventListener("loadeddata", handleVideoReady);
-        video.removeEventListener("canplay", handleVideoReady);
-        video.removeEventListener("error", handleFallback);
+        video.removeEventListener("loadeddata", maybeReady);
+        video.removeEventListener("canplay", maybeReady);
+        video.removeEventListener("error", markReady);
       }
-      window.clearTimeout(fallbackTimer);
+      window.clearTimeout(timeoutId);
     };
   }, []);
-
-  useEffect(() => {
-    if (!isVideoReady) return;
-
-    const finishLoading = async () => {
-      if (typeof document !== "undefined" && "fonts" in document) {
-        await document.fonts.ready;
-      }
-      setIsAssetsReady(true);
-    };
-
-    void finishLoading();
-  }, [isVideoReady]);
 
   const visibleTestimonials = Array.from({ length: 2 }, (_, index) => {
     return testimonials[(activeTestimonial + index) % testimonials.length];
@@ -203,7 +200,22 @@ export default function Homepage() {
   if (!isAssetsReady) {
     return (
       <div className={styles.loadingScreen} aria-live="polite" aria-busy="true">
-        <div className={styles.spinner} aria-label="Loading hotel experience" />
+        <div className={styles.loaderWrap} aria-label="Loading hotel experience">
+          <svg viewBox="0 0 120 120" className={styles.hotelLoader} role="img" aria-hidden="true">
+            <g className={styles.hotelBody}>
+              <path d="M18 48 L60 20 L102 48" />
+              <rect x="22" y="46" width="76" height="42" rx="5" />
+              <path d="M31 46 L31 88 M89 46 L89 88 M60 46 L60 88" />
+              <rect x="30" y="55" width="12" height="14" rx="2" />
+              <rect x="48" y="55" width="12" height="14" rx="2" />
+              <rect x="66" y="55" width="12" height="14" rx="2" />
+              <rect x="84" y="55" width="12" height="14" rx="2" />
+              <path d="M39 88 L39 94 M81 88 L81 94" />
+              <path d="M28 92 H92" />
+            </g>
+            <circle className={styles.loaderRing} cx="60" cy="60" r="54" />
+          </svg>
+        </div>
       </div>
     );
   }
