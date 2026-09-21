@@ -129,6 +129,49 @@ export default function Homepage() {
   }, []);
 
   useEffect(() => {
+    const finishLoading = async () => {
+      if (typeof document !== "undefined" && "fonts" in document) {
+        await document.fonts.ready;
+      }
+      setIsAssetsReady(true);
+    };
+
+    const video = videoRef.current;
+    const handleVideoReady = () => {
+      setIsVideoReady(true);
+      if (document.readyState === "complete") {
+        void finishLoading();
+      }
+    };
+
+    const handleFallback = () => {
+      setIsVideoReady(true);
+      void finishLoading();
+    };
+
+    if (video) {
+      video.addEventListener("loadeddata", handleVideoReady);
+      video.addEventListener("canplay", handleVideoReady);
+      video.addEventListener("error", handleFallback);
+    }
+
+    const fallbackTimer = window.setTimeout(handleFallback, 5000);
+
+    if (document.readyState === "complete") {
+      void finishLoading();
+    }
+
+    return () => {
+      if (video) {
+        video.removeEventListener("loadeddata", handleVideoReady);
+        video.removeEventListener("canplay", handleVideoReady);
+        video.removeEventListener("error", handleFallback);
+      }
+      window.clearTimeout(fallbackTimer);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isVideoReady) return;
 
     const finishLoading = async () => {
@@ -140,26 +183,6 @@ export default function Homepage() {
 
     void finishLoading();
   }, [isVideoReady]);
-
-  useEffect(() => {
-    if (document.readyState === "complete" && isVideoReady) {
-      setIsAssetsReady(true);
-    }
-  }, [isVideoReady]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const handleVideoLoad = () => setIsVideoReady(true);
-    video.addEventListener("loadeddata", handleVideoLoad);
-    video.addEventListener("canplay", handleVideoLoad);
-
-    return () => {
-      video.removeEventListener("loadeddata", handleVideoLoad);
-      video.removeEventListener("canplay", handleVideoLoad);
-    };
-  }, []);
 
   const visibleTestimonials = Array.from({ length: 2 }, (_, index) => {
     return testimonials[(activeTestimonial + index) % testimonials.length];
