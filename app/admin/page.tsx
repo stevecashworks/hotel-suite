@@ -24,6 +24,8 @@ import {
   X,
 } from "lucide-react";
 import styles from "./page.module.css";
+import RevenuePerRoomChart from "@/components/revenuePerRoomChart";
+import { RevenueAnalytics } from "@/lib/reservation-db";
 
 export type RoomStatus = "available" | "booked" | "maintenance";
 
@@ -77,6 +79,7 @@ type DashboardResponse = {
   }>;
   recentReservations: ReservationRow[];
   trend: DashboardItem[];
+  revenueAnalytics?: RevenueAnalytics;
 };
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -551,7 +554,7 @@ export default function AdminDashboardPage() {
         </section>
 
         {/* Main Section: Room & Suite Management (The core requirement) */}
-        <section className={styles.sectionCard}>
+        <section id="room-database-section" className={styles.sectionCard}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionTitleBlock}>
               <h2>Room Database & Suite Inventory</h2>
@@ -775,6 +778,19 @@ export default function AdminDashboardPage() {
             )}
           </div>
         </section>
+
+        {/* Revenue per Room & Suite Profitability Visualization Section */}
+        <RevenuePerRoomChart
+          rooms={rooms}
+          revenueAnalytics={data.revenueAnalytics}
+          onSelectRoom={(roomNumber) => {
+            setSearchQuery(roomNumber);
+            const el = document.getElementById("room-database-section");
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth" });
+            }
+          }}
+        />
 
         {/* Split Grid: Bookings Trend & Inventory */}
         <div className={styles.splitGrid}>
