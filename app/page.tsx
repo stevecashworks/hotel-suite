@@ -202,18 +202,12 @@ export default function Homepage() {
       <div className={styles.loadingScreen} aria-live="polite" aria-busy="true">
         <div className={styles.loaderWrap} aria-label="Loading hotel experience">
           <svg viewBox="0 0 120 120" className={styles.hotelLoader} role="img" aria-hidden="true">
-            <g className={styles.hotelBody}>
-              <path d="M18 48 L60 20 L102 48" />
-              <rect x="22" y="46" width="76" height="42" rx="5" />
-              <path d="M31 46 L31 88 M89 46 L89 88 M60 46 L60 88" />
-              <rect x="30" y="55" width="12" height="14" rx="2" />
-              <rect x="48" y="55" width="12" height="14" rx="2" />
-              <rect x="66" y="55" width="12" height="14" rx="2" />
-              <rect x="84" y="55" width="12" height="14" rx="2" />
-              <path d="M39 88 L39 94 M81 88 L81 94" />
-              <path d="M28 92 H92" />
+            <g className={styles.houseBody}>
+              <path className={styles.roofLine} d="M20 50 L60 18 L100 50" />
+              <path className={styles.wallLine} d="M28 46 V86 H92 V46" />
+              <path className={styles.doorLine} d="M46 86 V64 H74 V86" />
+              <path className={styles.windowLine} d="M52 64 H68" />
             </g>
-            <circle className={styles.loaderRing} cx="60" cy="60" r="54" />
           </svg>
         </div>
       </div>
@@ -389,60 +383,79 @@ export default function Homepage() {
       </section>
 
       <footer className={styles.footer}>
-        <div className={styles.footerTop}>
-          <div className={styles.footerColumn}>
+        <div className={styles.footerInner}>
+          <div className={styles.footerBrandPanel}>
             <p className={styles.footerBrand}>Hotelier.</p>
             <p className={styles.footerText}>
               Contemporary luxury for unforgettable escapes, intimate moments,
               and effortless indulgence.
             </p>
+
+            <div className={styles.newsletterWrap}>
+              <label htmlFor="newsletterEmail" className={styles.newsletterLabel}>
+                Join our newsletter
+              </label>
+              <div className={styles.newsletterRow}>
+                <input
+                  id="newsletterEmail"
+                  type="email"
+                  placeholder="Your email address"
+                  className={styles.newsletterInput}
+                />
+                <button type="button" className={styles.newsletterButton}>
+                  Join
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className={styles.footerColumn}>
-            <h4>Explore</h4>
-            <ul>
-              <li>
-                <a href="#about">About</a>
-              </li>
-              <li>
-                <a href="#rooms">Rooms</a>
-              </li>
-              <li>
-                <a href="#services">Services</a>
-              </li>
-              <li>
-                <a href="#booking">Booking</a>
-              </li>
-            </ul>
-          </div>
+          <div className={styles.footerGrid}>
+            <div className={styles.footerColumn}>
+              <h4>Explore</h4>
+              <ul>
+                <li>
+                  <a href="#about">About</a>
+                </li>
+                <li>
+                  <a href="#rooms">Rooms</a>
+                </li>
+                <li>
+                  <a href="#services">Services</a>
+                </li>
+                <li>
+                  <a href="#booking">Booking</a>
+                </li>
+              </ul>
+            </div>
 
-          <div className={styles.footerColumn}>
-            <h4>Contact</h4>
-            <ul>
-              <li>
-                <MapPin size={14} />
-                <span>27 Ocean Crest, Maldives</span>
-              </li>
-              <li>
-                <PhoneCall size={14} />
-                <span>+1 (800) 555-0148</span>
-              </li>
-            </ul>
-          </div>
+            <div className={styles.footerColumn}>
+              <h4>Visit</h4>
+              <ul>
+                <li>
+                  <MapPin size={14} />
+                  <span>27 Ocean Crest, Maldives</span>
+                </li>
+                <li>
+                  <PhoneCall size={14} />
+                  <span>+1 (800) 555-0148</span>
+                </li>
+              </ul>
+            </div>
 
-          <div className={styles.footerColumn}>
-            <h4>Follow</h4>
-            <div className={styles.socialList}>
-              {socialLinks.map(({ label, href, icon: Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  aria-label={label}
-                  className={styles.socialLink}
-                >
-                  <Icon size={16} />
-                </a>
-              ))}
+            <div className={styles.footerColumn}>
+              <h4>Follow</h4>
+              <div className={styles.socialList}>
+                {socialLinks.map(({ label, href, icon: Icon }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    aria-label={label}
+                    className={styles.socialLink}
+                  >
+                    <Icon size={16} />
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
         </div>

@@ -87,7 +87,7 @@ export default function SlideShow() {
       <div ref={copyRef} className={`${styles.copy} ${styles.reveal}`}>
         <p className={styles.eyebrow}>Luxury, redefined</p>
 
-        <h2>Our customers deserve nothing less than luxury, so we deliver on that.</h2>
+        <h2 className={styles.left}>Our customers deserve nothing less than luxury, so we deliver on that.</h2>
 
         <p className={styles.description}>
           Thoughtful service, elevated comfort, and beautifully designed spaces

@@ -9,8 +9,8 @@ const users: User[] = [];
 const sessions = new Map<string, { userId: string; expiresAt: number }>();
 const sessionLifetime = 60 * 60 * 24 * 7;
 
-const staffEmail = process.env.HOTEL_STAFF_EMAIL?.trim().toLowerCase();
-const staffPassword = process.env.HOTEL_STAFF_PASSWORD;
+const staffEmail = (process.env.HOTEL_STAFF_EMAIL ?? "admin@hotel-suite.local").trim().toLowerCase();
+const staffPassword = process.env.HOTEL_STAFF_PASSWORD ?? "HotelSuiteAdmin123";
 
 if (staffEmail && staffPassword) {
   users.push({ id: "hotel-manager", name: "Hotel Manager", email: staffEmail, passwordHash: hashPassword(staffPassword), role: "staff" });

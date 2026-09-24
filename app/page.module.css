@@ -18,46 +18,56 @@
   width: 120px;
   height: 120px;
   overflow: visible;
-  animation: float 2s ease-in-out infinite;
+  animation: float 1.6s ease-in-out infinite;
 }
 
-.hotelBody {
-  fill: rgba(214, 176, 127, 0.08);
+.houseBody {
+  fill: none;
   stroke: #d8b48d;
-  stroke-width: 2.8;
+  stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
-  animation: pulseGlow 1.8s ease-in-out infinite;
+  animation: pulseGlow 1.4s ease-in-out infinite;
 }
 
-.hotelBody rect,
-.hotelBody path {
-  fill: none;
+.roofLine,
+.wallLine,
+.doorLine,
+.windowLine {
+  stroke-dasharray: 140;
+  stroke-dashoffset: 140;
+  animation: drawHouse 1.6s ease-in-out infinite;
 }
 
-.hotelBody rect {
-  fill: rgba(216, 180, 141, 0.08);
+.wallLine {
+  animation-delay: 0.1s;
 }
 
-.loaderRing {
-  fill: none;
-  stroke: rgba(216, 180, 141, 0.35);
-  stroke-width: 3;
-  stroke-dasharray: 180 280;
-  stroke-linecap: round;
-  transform-origin: center;
-  animation: spinRing 2.2s linear infinite;
+.doorLine {
+  animation-delay: 0.25s;
 }
 
-@keyframes spinRing {
-  0% { transform: rotate(0deg); stroke-dasharray: 20 240; }
-  50% { transform: rotate(180deg); stroke-dasharray: 120 120; }
-  100% { transform: rotate(360deg); stroke-dasharray: 20 240; }
+.windowLine {
+  animation-delay: 0.4s;
 }
 
 @keyframes pulseGlow {
   0%, 100% { filter: drop-shadow(0 0 8px rgba(216, 180, 141, 0.2)); }
   50% { filter: drop-shadow(0 0 18px rgba(216, 180, 141, 0.5)); }
+}
+
+@keyframes drawHouse {
+  0% {
+    stroke-dashoffset: 140;
+    opacity: 0.2;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
 }
 
 @keyframes float {
@@ -66,10 +76,16 @@
 }
 
 .container{
+  --luxury-gold: #d7b07a;
+  --luxury-gold-strong: #b98b60;
+  --luxury-ink: #1d1713;
+  --luxury-ink-soft: rgba(29, 23, 19, 0.76);
+  --luxury-panel: rgba(255, 255, 255, 0.08);
   width:100%;
   text-align:center;
   justify-content:center;
   overflow-x:hidden;
+  color: var(--luxury-ink);
 }
 .heroAndHeader{
   display: flex;
@@ -90,6 +106,7 @@
   align-items:center;
   gap:16px;
   flex-wrap:wrap;
+  backdrop-filter: blur(6px);
 }
 .shade{
   position:absolute;
@@ -101,16 +118,29 @@
 }
 .button{
     width:150px;
-    height:35px;
-    border:1px solid var(--gray-bg);
-    background-color:transparent;
+    height:40px;
+    border:1px solid rgba(255,255,255,0.48);
+    background: rgba(255,255,255,0.04);
     color:white;
-    padding:5px;
-    border-radius:5px;
+    padding:0 1.1rem;
+    border-radius:999px;
     cursor:pointer;
     display:flex;
     align-items:center;
     justify-content: center;
+    font-size:0.78rem;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-weight:600;
+    transition: all 0.2s ease;
+}
+
+.button:hover,
+.heroButton:hover,
+.newsletterButton:hover,
+.carouselButton:hover,
+.socialLink:hover {
+  transform: translateY(-1px);
 }
 .logo{
   font-size:clamp(1.3rem, 2vw, 2rem);
@@ -143,12 +173,17 @@
   flex-wrap:wrap;
 }
 .link{
-  color:white;
+  color:rgba(255,255,255,0.85);
   font-size:clamp(0.7rem, 1.2vw, 0.85rem);
   font-weight:500;
-  letter-spacing:1px;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
   transition:0.3s ease-in-out;
   z-index:9;
+}
+
+.link:hover {
+  color:#f2d7ac;
 }
 
 .heroText{
@@ -180,11 +215,12 @@
   display:flex;
   flex:1 1 180px;
   min-width:0;
-  height:40px;
-  background-color:var(--dark-bg);
+  height:44px;
+  background: rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.09);
   align-items:center;
-  padding:10px 10px;
-  border-radius:8px;
+  padding:10px 12px;
+  border-radius:12px;
   gap:10px;
 }
 .searchInput{
@@ -208,15 +244,19 @@
 }
 .heroButton{
   display:flex;
-  background-color:var(--nude-bg);
-  color:white;
+  background: linear-gradient(135deg, var(--luxury-gold), var(--luxury-gold-strong));
+  color:#1f160f;
   border:none;
   width:clamp(120px, 18vw, 150px);
   height:40px;
   align-items:center;
   justify-content:center;
-  border-radius:8px;
+  border-radius:999px;
   cursor:pointer;
+  font-weight:700;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  box-shadow: 0 10px 22px rgba(184, 136, 85, 0.22);
 }
 .heroBottom{
   position:relative;
@@ -340,44 +380,128 @@
 .footer {
   width: 100%;
   padding: clamp(4rem, 7vw, 6rem) clamp(1.25rem, 3vw, 3rem) 2rem;
-  background: #171412;
+  background:
+    linear-gradient(180deg, rgba(20, 17, 15, 0.98) 0%, rgba(17, 13, 11, 1) 100%);
   color: #f7f1ec;
 }
 
-.footerTop {
+.footerInner {
   max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.4fr 0.8fr 1fr 0.8fr;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: clamp(2rem, 4vw, 4rem);
+  align-items: start;
+}
+
+.footerBrandPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.2rem;
+}
+
+.footerBrand {
+  color: #f4ebdf;
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  font-weight: 600;
+  letter-spacing: -0.06em;
+  margin: 0;
+}
+
+.footerText {
+  margin: 0;
+  max-width: 500px;
+  color: rgba(247, 241, 236, 0.72);
+  line-height: 1.8;
+}
+
+.newsletterWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.8rem;
+  width: 100%;
+  max-width: 560px;
+}
+
+.newsletterLabel {
+  color: #d9b685;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.newsletterRow {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0.75rem;
+  padding: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.newsletterInput {
+  flex: 1 1 220px;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #f7f1ec;
+  font-size: 0.96rem;
+  padding: 0.9rem 1rem;
+}
+
+.newsletterInput::placeholder {
+  color: rgba(247, 241, 236, 0.5);
+}
+
+.newsletterButton {
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #d9b685, #b88855);
+  color: #1a120d;
+  padding: 0.88rem 1.3rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.newsletterButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(184, 136, 85, 0.25);
+}
+
+.footerGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2rem;
+  width: 100%;
 }
 
 .footerColumn {
   display: flex;
   flex-direction: column;
-}
-
-.footerBrand {
-  color: #f4ebdf;
-  font-size: clamp(1.7rem, 3vw, 2.5rem);
-  font-weight: 600;
-  letter-spacing: -0.06em;
-}
-
-.footerText {
-  margin-top: 1rem;
-  max-width: 320px;
-  color: rgba(247, 241, 236, 0.72);
-  line-height: 1.8;
+  align-items: flex-start;
+  text-align: left;
+  min-width: 0;
 }
 
 .footerColumn h4 {
-  margin-bottom: 1rem;
+  margin: 0 0 1rem;
   color: #d9b685;
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
+  width: 100%;
+  text-align: left;
 }
 
 .footerColumn ul {
@@ -385,13 +509,21 @@
   display: grid;
   gap: 0.8rem;
   color: rgba(247, 241, 236, 0.8);
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  text-align: left;
 }
 
 .footerColumn li {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.7rem;
   line-height: 1.5;
+  color: rgba(247, 241, 236, 0.8);
+  width: 100%;
+  text-align: left;
 }
 
 .footerColumn a {
@@ -433,6 +565,7 @@
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 1rem;
   color: rgba(247, 241, 236, 0.64);
   font-size: 0.72rem;
@@ -441,8 +574,32 @@
 }
 
 @media (max-width: 900px) {
-  .footerTop {
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  .footerInner,
+  .footerGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .footerBottom {
+    flex-direction: column;
+    align-items: flex-start;
+    letter-spacing: 0.08em;
+  }
+}
+
+@media (max-width: 640px) {
+  .newsletterRow {
+    flex-direction: column;
+    border-radius: 22px;
+    padding: 0.75rem;
+  }
+
+  .newsletterInput,
+  .newsletterButton {
+    width: 100%;
+  }
+
+  .newsletterButton {
+    justify-self: stretch;
   }
 }
 

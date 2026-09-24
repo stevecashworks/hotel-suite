@@ -24,6 +24,9 @@
   opacity: 1;
   transform: translateY(0);
 }
+.left{
+  text-align:left;
+}
 
 .eyebrow {
   color: #8b6a4c;
