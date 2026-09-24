@@ -13,19 +13,23 @@ import {
   ExternalLink,
   Hotel,
   Loader2,
+  LogOut,
   Plus,
   Printer,
   QrCode,
   RefreshCw,
   Trash2,
   TrendingUp,
+  User as UserIcon,
   Users,
   Wrench,
   X,
 } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 import styles from "./page.module.css";
 import RevenuePerRoomChart from "@/components/revenuePerRoomChart";
 import { RevenueAnalytics } from "@/lib/reservation-db";
+import { PublicUser } from "@/lib/auth";
 
 export type RoomStatus = "available" | "booked" | "maintenance";
 
@@ -130,6 +134,9 @@ export default function AdminDashboardPage() {
   const [formImage, setFormImage] = useState("/05_deluxe_room.jpg");
   const [formDetail, setFormDetail] = useState("Plush king bed · High ceiling · Marble bath");
 
+  // User state
+  const [currentUser, setCurrentUser] = useState<PublicUser | null>(null);
+
   // Notifications
   const [notification, setNotification] = useState<{
     type: "success" | "error";
@@ -215,16 +222,21 @@ export default function AdminDashboardPage() {
 
     async function initialLoad() {
       try {
-        const [adminRes, hotelRes] = await Promise.all([
+        const [adminRes, hotelRes, authRes] = await Promise.all([
           fetch("/api/admin"),
           fetch("/api/hotel"),
+          fetch("/api/auth"),
         ]);
 
         const adminData = await adminRes.json();
         const hotelData = await hotelRes.json();
+        const authData = await authRes.json();
 
         if (!cancelled) {
           setData(adminData);
+          if (authData?.user) {
+            setCurrentUser(authData.user);
+          }
           if (Array.isArray(hotelData?.rooms)) {
             setRooms(hotelData.rooms);
           } else if (Array.isArray(adminData?.rooms)) {
@@ -246,6 +258,19 @@ export default function AdminDashboardPage() {
       cancelled = true;
     };
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "logout" }),
+      });
+      window.location.assign("/auth");
+    } catch {
+      window.location.assign("/auth");
+    }
+  };
 
   const handleAddRoom = async (e: FormEvent) => {
     e.preventDefault();
@@ -430,6 +455,30 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className={styles.actionGroup}>
+            {currentUser && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#ead8bf] text-xs text-[#2a1d14] shadow-xs">
+                {currentUser.avatar ? (
+                  <img
+                    src={currentUser.avatar}
+                    alt={currentUser.name}
+                    className="w-5 h-5 rounded-full object-cover"
+                  />
+                ) : (
+                  <UserIcon size={14} className="text-[#65452e]" />
+                )}
+                <span className="font-semibold">{currentUser.name}</span>
+                {currentUser.provider === "google" && <FcGoogle size={14} title="Authenticated via Google" />}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  title="Sign out of staff account"
+                  className="ml-1 text-[#a42b21] hover:text-[#7f1d1d] transition-colors p-1"
+                >
+                  <LogOut size={13} />
+                </button>
+              </div>
+            )}
+
             <button
               type="button"
               className={styles.secondaryButton}

@@ -1,26 +1,32 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
   BedDouble,
   Camera,
   Globe,
+  LogIn,
+  LogOut,
   MapPin,
   PhoneCall,
   Play,
   ShieldCheck,
   Sparkles,
+  User,
   UtensilsCrossed,
   Waves,
 } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 import { IoIosSearch } from "react-icons/io";
 import { BsCalendar2Date } from "react-icons/bs";
 import About from "../components/about";
 import EventShowcase from "../components/eventShowcase";
 import SlideShow from "../components/slideShow";
 import { hotelLocation } from "../lib/hotel-data";
+import { PublicUser } from "../lib/auth";
 import styles from "./page.module.css";
 
 const linksData = [
@@ -117,7 +123,30 @@ const testimonials = [
 export default function Homepage() {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [isAssetsReady, setIsAssetsReady] = useState(false);
+  const [currentUser, setCurrentUser] = useState<PublicUser | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) {
+          setCurrentUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "logout" }),
+      });
+      setCurrentUser(null);
+    } catch {}
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -229,11 +258,59 @@ export default function Homepage() {
                   </a>
                 );
               })}
+              <Link href="/register" className={styles.link}>
+                Suites
+              </Link>
             </div>
-            <button type="button" className={styles.button} onClick={handleVisitClick}>
-              Visit
-              <BedDouble size={18} style={{ marginLeft: "10px" }} />
-            </button>
+            <div className="flex items-center gap-3">
+              {currentUser ? (
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={currentUser.role === "staff" ? "/admin" : "/register"}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 backdrop-blur-xs text-white text-xs transition-all"
+                  >
+                    {currentUser.avatar ? (
+                      <img
+                        src={currentUser.avatar}
+                        alt={currentUser.name}
+                        className="w-5 h-5 rounded-full object-cover"
+                      />
+                    ) : (
+                      <User size={14} />
+                    )}
+                    <span className="font-medium max-w-[110px] truncate">{currentUser.name}</span>
+                    {currentUser.provider === "google" && (
+                      <FcGoogle size={13} title="Google Connected" />
+                    )}
+                    {currentUser.role === "staff" && (
+                      <span className="text-[10px] bg-[#d8b48d] text-[#211914] px-1.5 py-0.2 rounded font-bold">
+                        Staff
+                      </span>
+                    )}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    title="Sign out"
+                    className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/auth"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/25 backdrop-blur-xs text-white text-xs font-semibold tracking-wider transition-all"
+                >
+                  <LogIn size={14} />
+                  <span>Sign In</span>
+                </Link>
+              )}
+              <button type="button" className={styles.button} onClick={handleVisitClick}>
+                Visit
+                <BedDouble size={18} style={{ marginLeft: "10px" }} />
+              </button>
+            </div>
           </div>
           <div className={styles.heroText}>Enjoy the best experience of your life.</div>
           <div className={styles.heroUtility}>

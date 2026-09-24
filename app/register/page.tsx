@@ -4,7 +4,10 @@ import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BedDouble, CheckCircle2, Hotel, LoaderCircle } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 import styles from "./page.module.css";
+import { PublicUser } from "@/lib/auth";
+import SocialAuthButtons from "@/components/socialAuthButtons";
 
 type Room = {
   id: number;
@@ -28,7 +31,26 @@ function RegisterContent() {
   const [message, setMessage] = useState("");
   const [confirmation, setConfirmation] = useState<{ roomNumber: string; availableUntil: string } | null>(null);
 
+  // User state
+  const [currentUser, setCurrentUser] = useState<PublicUser | null>(null);
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [showSocialModal, setShowSocialModal] = useState(false);
+
   useEffect(() => {
+    // Check authentication
+    fetch("/api/auth")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) {
+          setCurrentUser(data.user);
+          setGuestName(data.user.name || "");
+          setGuestEmail(data.user.email || "");
+        }
+      })
+      .catch(() => {});
+
+    // Fetch rooms
     fetch("/api/hotel")
       .then((response) => response.json())
       .then((data) => {
@@ -65,22 +87,26 @@ function RegisterContent() {
     const chosenRoomId = Number(form.get("roomId") || selectedRoomId);
     const roomItem = rooms.find((r) => r.id === chosenRoomId);
 
+    const authSource = currentUser
+      ? `${currentUser.provider === "google" ? "Google" : "Member"} Account`
+      : "";
+
     const response = await fetch("/api/hotel", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "reserve-room",
         payload: {
-          name: form.get("name"),
-          email: form.get("email"),
+          name: form.get("name") || guestName,
+          email: form.get("email") || guestEmail,
           phone: form.get("phone"),
           roomId: chosenRoomId,
           nights: Number(form.get("nights")),
           source: urlRoomNumber
-            ? `QR Scan (Room ${urlRoomNumber})`
+            ? `QR Scan (Room ${urlRoomNumber})${authSource ? ` · ${authSource}` : ""}`
             : roomItem
-            ? `Direct Booking (Room ${roomItem.number})`
-            : "Guest registration",
+            ? `Direct Booking (Room ${roomItem.number})${authSource ? ` · ${authSource}` : ""}`
+            : authSource || "Guest registration",
         },
       }),
     });
@@ -92,6 +118,13 @@ function RegisterContent() {
     }
     setConfirmation({ roomNumber: data.roomNumber, availableUntil: data.availableUntil });
   }
+
+  const handleSocialSuccess = (user: PublicUser) => {
+    setCurrentUser(user);
+    setGuestName(user.name);
+    setGuestEmail(user.email);
+    setShowSocialModal(false);
+  };
 
   if (confirmation) {
     return (
@@ -129,6 +162,54 @@ function RegisterContent() {
             : "Select an available room and share your details. Your reservation will be confirmed immediately."}
         </p>
 
+        {/* Social Auth Banner / Active Profile */}
+        {currentUser ? (
+          <div className="my-4 p-3 rounded-xl bg-[#ead8bf]/30 border border-[#99724e]/20 flex items-center justify-between gap-3 text-left">
+            <div className="flex items-center gap-2.5">
+              {currentUser.avatar ? (
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-9 h-9 rounded-full object-cover border border-[#99724e]/40"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-[#65452e] text-[#fffaf4] flex items-center justify-center font-serif text-sm">
+                  {currentUser.name.charAt(0)}
+                </div>
+              )}
+              <div>
+                <div className="text-xs font-semibold text-[#211914] flex items-center gap-1.5">
+                  {currentUser.name}
+                  {currentUser.provider === "google" && <FcGoogle size={14} title="Verified with Google" />}
+                </div>
+                <div className="text-[0.74rem] text-[#7c5c43]">{currentUser.email}</div>
+              </div>
+            </div>
+            <Link
+              href="/auth"
+              className="text-[0.72rem] font-semibold text-[#65452e] hover:underline whitespace-nowrap"
+            >
+              Switch profile
+            </Link>
+          </div>
+        ) : (
+          <div className="my-4 p-3 rounded-xl bg-[#fdfbf7] border border-[#ead8bf] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-left">
+            <div className="flex items-center gap-2">
+              <FcGoogle size={20} className="shrink-0" />
+              <div className="text-xs text-[#5d402a]">
+                <strong>Speed up registration:</strong> Sign in with Google to pre-fill your guest details.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSocialModal(true)}
+              className="px-3 py-1.5 rounded-lg bg-[#65452e] text-[#fffaf4] text-[0.75rem] font-semibold whitespace-nowrap hover:bg-[#523724] transition-colors"
+            >
+              Sign in with Google
+            </button>
+          </div>
+        )}
+
         {targetRoom && (
           <div className={styles.prefilledBanner}>
             <BedDouble size={20} style={{ color: "#65452e", flexShrink: 0 }} />
@@ -144,11 +225,26 @@ function RegisterContent() {
         <form onSubmit={register} className={styles.form}>
           <label>
             Full name
-            <input name="name" autoComplete="name" required placeholder="e.g. Eleanor Vance" />
+            <input
+              name="name"
+              autoComplete="name"
+              required
+              placeholder="e.g. Eleanor Vance"
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+            />
           </label>
           <label>
             Email address
-            <input name="email" type="email" autoComplete="email" required placeholder="eleanor@example.com" />
+            <input
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              placeholder="eleanor@example.com"
+              value={guestEmail}
+              onChange={(e) => setGuestEmail(e.target.value)}
+            />
           </label>
           <label>
             Phone number
@@ -205,6 +301,34 @@ function RegisterContent() {
           By registering, you agree that our concierge may contact you about your stay.
         </p>
       </section>
+
+      {/* Social Login Modal for Registration */}
+      {showSocialModal && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+          onClick={() => setShowSocialModal(false)}
+        >
+          <div
+            className="bg-[#fffdfa] border border-[#ead8bf] rounded-2xl max-w-md w-full p-6 shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-serif font-medium text-[#211914]">Sign in to Hotelier</h3>
+              <button
+                type="button"
+                onClick={() => setShowSocialModal(false)}
+                className="text-[#65452e] hover:text-[#211914] text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-[#7c5c43] mb-4">
+              Sign in with Google or social auth to automatically pre-fill your guest profile and track bookings.
+            </p>
+            <SocialAuthButtons onSuccess={handleSocialSuccess} showDivider={false} />
+          </div>
+        </div>
+      )}
     </main>
   );
 }

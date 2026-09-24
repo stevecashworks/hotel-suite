@@ -1,0 +1,175 @@
+.socialContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  width: 100%;
+}
+
+.socialBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 48px;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid rgba(105, 72, 45, 0.2);
+  background: #ffffff;
+  color: #2a1d14;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(42, 29, 20, 0.04);
+}
+
+.socialBtn:hover:not(:disabled) {
+  background: #fdfbf7;
+  border-color: rgba(105, 72, 45, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(42, 29, 20, 0.08);
+}
+
+.socialBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.socialBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.googleBtn {
+  border-color: rgba(66, 133, 244, 0.3);
+}
+
+.googleBtn:hover:not(:disabled) {
+  border-color: rgba(66, 133, 244, 0.6);
+  background: #fcfdfe;
+}
+
+.googleAccountCard {
+  margin-top: 0.25rem;
+  padding: 0.85rem;
+  border-radius: 14px;
+  background: rgba(234, 216, 191, 0.3);
+  border: 1px solid rgba(105, 72, 45, 0.18);
+}
+
+.accountCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.userProfilePill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: #ffffff;
+  border: 1px solid rgba(105, 72, 45, 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 3px rgba(42, 29, 20, 0.04);
+}
+
+.userProfilePill:hover:not(:disabled) {
+  border-color: #65452e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(67, 43, 25, 0.08);
+}
+
+.avatarMini {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(105, 72, 45, 0.3);
+  flex-shrink: 0;
+}
+
+.signInBadge {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #65452e;
+  background: rgba(234, 216, 191, 0.4);
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.userProfilePill:hover .signInBadge {
+  background: #65452e;
+  color: #ffffff;
+}
+
+.setupCard {
+  margin-top: 0.5rem;
+  padding: 0.85rem;
+  background: #fdfbf7;
+  border: 1px solid rgba(105, 72, 45, 0.18);
+  border-radius: 10px;
+}
+
+.copyBox {
+  background: #f8f4ed;
+  border: 1px solid rgba(105, 72, 45, 0.2);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.copyCode {
+  font-family: monospace;
+  font-size: 0.76rem;
+  color: #3e2b1e;
+  word-break: break-all;
+}
+
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #65452e;
+  color: #fff;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 1.25rem 0 0.75rem;
+  color: rgba(42, 29, 20, 0.55);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(105, 72, 45, 0.16);
+}
+
+.divider span {
+  padding: 0 0.85rem;
+}
