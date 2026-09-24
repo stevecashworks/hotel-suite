@@ -1,38 +1,47 @@
-﻿import mongoose from "mongoose";
+import mongoose from "mongoose";
+
+mongoose.set("bufferCommands", false);
 
 const dbUri: string = process.env.MONGODB_URI ?? process.env.MONGO_URI ?? "";
-
-if (!dbUri) {
-  throw new Error("Please define MONGODB_URI (or MONGO_URI) in your .env.local file.");
-}
 
 declare global {
   var mongooseCache: {
     conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
+    promise: Promise<typeof mongoose | null> | null;
   } | undefined;
 }
 
 const cached = globalThis.mongooseCache ?? (globalThis.mongooseCache = { conn: null, promise: null });
 
-export default async function connect_db(): Promise<typeof mongoose> {
+export default async function connect_db(): Promise<typeof mongoose | null> {
   if (cached.conn) {
     return cached.conn;
   }
 
+  if (!dbUri) {
+    return null;
+  }
+
   if (!cached.promise) {
-    cached.promise = mongoose.connect(dbUri, {
-      serverSelectionTimeoutMS: 5000,
-      bufferCommands: false,
-    });
+    cached.promise = mongoose
+      .connect(dbUri, {
+        serverSelectionTimeoutMS: 2000,
+        bufferCommands: false,
+      })
+      .then((m) => m)
+      .catch((err) => {
+        console.warn("MongoDB connection failed, running in fallback mode:", err?.message || err);
+        return null;
+      });
   }
 
   try {
     cached.conn = await cached.promise;
-  } catch (error) {
+  } catch {
     cached.promise = null;
-    throw error;
+    return null;
   }
 
   return cached.conn;
 }
+

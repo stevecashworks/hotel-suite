@@ -1,65 +1,102 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import styles from "./slideshow.module.css";
 
-const rooms = [
+type SlideRoom = {
+  image: string;
+  name: string;
+  detail: string;
+  price?: number;
+};
+
+const defaultRooms: SlideRoom[] = [
   {
-    image: "/room%201.jpg",
+    image: "/room 1.jpg",
     name: "The Royal Suite",
     detail: "Panoramic views · King bed",
   },
   {
-    image: "/room%202.jpg",
+    image: "/room 2.jpg",
     name: "The Grand Room",
     detail: "Timeless comfort · City views",
   },
   {
-    image: "/room%203.jpg",
+    image: "/room 3.jpg",
     name: "The Skyline Suite",
     detail: "Private lounge · King bed",
   },
   {
-    image: "/room%204.jpg",
+    image: "/room 4.jpg",
     name: "The Signature Room",
     detail: "Refined details · Garden views",
   },
   {
-    image: "/room%205.jpg",
+    image: "/room 5.jpg",
     name: "The Terrace Suite",
     detail: "Open-air terrace · King bed",
   },
   {
-    image: "/room%206.jpg",
+    image: "/room 6.jpg",
     name: "The Executive Room",
     detail: "Quiet luxury · Workspace",
   },
   {
-    image: "/room%207.jpg",
+    image: "/room 7.jpg",
     name: "The Penthouse",
     detail: "An unforgettable stay · Top floor",
   },
 ];
 
 export default function SlideShow() {
+  const [roomList, setRoomList] = useState<SlideRoom[]>(defaultRooms);
   const [activeRoom, setActiveRoom] = useState<number>(0);
   const copyRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    fetch("/api/hotel")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.rooms) && data.rooms.length > 0) {
+          const mapped: SlideRoom[] = data.rooms.map(
+            (r: {
+              imageUrl?: string;
+              number: string;
+              type: string;
+              detail?: string;
+              floor: number;
+              price: number;
+            }) => ({
+              image: r.imageUrl || "/room 1.jpg",
+              name: `Suite ${r.number} · ${r.type}`,
+              detail: r.detail || `Floor ${r.floor} · $${r.price}/night`,
+              price: r.price,
+            })
+          );
+          setRoomList(mapped);
+        }
+      })
+      .catch(() => {
+        // Fallback to default curated rooms
+      });
+  }, []);
+
   function moveSlide(direction: number) {
     setActiveRoom((currentRoom) => {
-      return (currentRoom + direction + rooms.length) % rooms.length;
+      const len = roomList.length || 1;
+      return (currentRoom + direction + len) % len;
     });
   }
 
   useEffect(() => {
+    if (!roomList.length) return;
     const interval = setInterval(() => {
-      setActiveRoom((currentRoom) => (currentRoom + 1) % rooms.length);
+      setActiveRoom((currentRoom) => (currentRoom + 1) % roomList.length);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [roomList.length]);
 
   useEffect(() => {
     const copyNode = copyRef.current;
@@ -82,6 +119,8 @@ export default function SlideShow() {
     return () => observer.disconnect();
   }, []);
 
+  const current = roomList[activeRoom] || defaultRooms[0];
+
   return (
     <section className={styles.showcase} id="rooms">
       <div ref={copyRef} className={`${styles.copy} ${styles.reveal}`}>
@@ -95,16 +134,16 @@ export default function SlideShow() {
           to feel indulgent, effortless, and distinctly memorable.
         </p>
 
-        <a className={styles.exploreLink} href="#booking">
-          Explore our rooms <span>↗</span>
+        <a className={styles.exploreLink} href="/register">
+          Reserve a room <span>↗</span>
         </a>
       </div>
 
       <div className={styles.carousel}>
         <div className={styles.imageFrame}>
-          {rooms.map((room, index) => (
+          {roomList.map((room, index) => (
             <img
-              key={room.image}
+              key={`${room.name}-${index}`}
               className={`${styles.roomImage} ${
                 index === activeRoom ? styles.active : ""
               }`}
@@ -114,15 +153,15 @@ export default function SlideShow() {
           ))}
 
           <div className={styles.roomInfo}>
-            <p>{rooms[activeRoom].detail}</p>
-            <h3>{rooms[activeRoom].name}</h3>
+            <p>{current.detail}</p>
+            <h3>{current.name}</h3>
           </div>
         </div>
 
         <div className={styles.controls}>
           <div className={styles.counter}>
             <strong>{String(activeRoom + 1).padStart(2, "0")}</strong>
-            <span> / {String(rooms.length).padStart(2, "0")}</span>
+            <span> / {String(roomList.length).padStart(2, "0")}</span>
           </div>
 
           <div className={styles.buttons}>
@@ -147,5 +186,3 @@ export default function SlideShow() {
     </section>
   );
 }
-
-

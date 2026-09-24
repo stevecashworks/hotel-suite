@@ -9,6 +9,8 @@ export type Room = {
   status: RoomStatus;
   guest?: string;
   availableUntil?: string;
+  imageUrl?: string;
+  detail?: string;
 };
 
 export type InventoryItem = {

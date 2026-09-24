@@ -1,0 +1,6 @@
+{
+  "name": "Hotel Suite",
+  "description": "Luxury hotel suite reservation system, room inventory management, check-in, and administrative command center.",
+  "permissions": [],
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

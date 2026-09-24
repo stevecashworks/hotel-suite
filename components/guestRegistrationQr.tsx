@@ -11,12 +11,15 @@ const defaultPosition = { x: 52, y: 48 };
 export default function GuestRegistrationQr() {
   const [visitorPosition, setVisitorPosition] = useState(defaultPosition);
   const [isTracking, setIsTracking] = useState(false);
-  const [status, setStatus] = useState("Waiting for signal");
+  const [status, setStatus] = useState(() =>
+    typeof navigator !== "undefined" && !navigator.geolocation
+      ? "Location unavailable"
+      : "Waiting for signal"
+  );
   const [qrDataUrl, setQrDataUrl] = useState("");
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setStatus("Location unavailable");
       return;
     }
 
