@@ -4,21 +4,19 @@ import {
   createSession,
   createUser,
   deleteSession,
-  findOrCreateSocialUser,
   getRequestUser,
   getSocialAuthConfig,
   sessionMaxAge,
 } from "@/lib/auth";
+import { dashboardPathForRole, safeReturnPath } from "@/lib/auth-routing";
 
 export function getCookieConfig(request?: NextRequest | Request) {
-  // AI Studio preview iframe requires sameSite: "none" and secure: true for cookies to persist
-  const host = request?.headers.get("host") || "";
-  const isLocalhost = host.includes("localhost") || host.includes("127.0.0.1");
-  const isSecure = process.env.NODE_ENV === "production" || !isLocalhost;
+  const origin = request ? new URL(request.url).origin : "";
+  const isSecure = process.env.NODE_ENV === "production" || origin.startsWith("https://");
 
   return {
     httpOnly: true,
-    sameSite: (isSecure ? "none" : "lax") as "none" | "lax",
+    sameSite: "lax" as const,
     secure: Boolean(isSecure),
     path: "/",
     maxAge: sessionMaxAge,
@@ -36,6 +34,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const cookieOptions = getCookieConfig(request);
 
+    if (!body || typeof body.action !== "string") {
+      return NextResponse.json({ error: "Choose a valid authentication action." }, { status: 400 });
+    }
+
     if (body.action === "logout") {
       deleteSession(request.cookies.get("hotel_session")?.value);
       const response = NextResponse.json({ status: "success" });
@@ -46,23 +48,17 @@ export async function POST(request: NextRequest) {
     let result;
 
     if (body.action === "signup") {
-      result = await createUser({ ...body.payload, role: "guest" });
-    } else if (body.action === "login") {
-      result = await authenticate(body.payload.email, body.payload.password);
-    } else if (body.action === "social-login") {
-      // Social login (Google)
-      const { provider, email, name, avatar, providerId } = body.payload || {};
-      if (!email || !provider) {
-        return NextResponse.json({ error: "Missing social profile information." }, { status: 400 });
+      const { name, email, password } = body.payload || {};
+      if (typeof name !== "string" || typeof email !== "string" || typeof password !== "string") {
+        return NextResponse.json({ error: "Enter your name, email address, and password." }, { status: 400 });
       }
-      result = await findOrCreateSocialUser({
-        provider,
-        providerId,
-        email,
-        name: name || email.split("@")[0],
-        avatar,
-        role: "guest",
-      });
+      result = await createUser({ name, email, password, role: "guest" });
+    } else if (body.action === "login") {
+      const { email, password } = body.payload || {};
+      if (typeof email !== "string" || typeof password !== "string") {
+        return NextResponse.json({ error: "Enter your email address and password." }, { status: 400 });
+      }
+      result = await authenticate(email, password);
     } else {
       result = { error: "Unsupported auth action" };
     }
@@ -75,7 +71,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Authentication failed" }, { status: 400 });
     }
 
-    const response = NextResponse.json({ user: result.user });
+    const redirectTo = result.user.role === "guest"
+      ? safeReturnPath(body.next)
+      : dashboardPathForRole(result.user.role);
+    const response = NextResponse.json({ user: result.user, redirectTo });
     response.cookies.set("hotel_session", createSession(result.user.id), cookieOptions);
     return response;
   } catch (err: unknown) {

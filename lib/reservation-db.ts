@@ -263,6 +263,7 @@ export async function saveReservationToDb({
   roomNumber,
   roomType,
   nights,
+  checkIn,
   source,
 }: {
   name: string;
@@ -272,8 +273,13 @@ export async function saveReservationToDb({
   roomNumber: string;
   roomType: string;
   nights: number;
+  checkIn?: string;
   source?: string;
 }) {
+  const arrivalDate = checkIn ? new Date(`${checkIn}T12:00:00`) : new Date();
+  const checkoutDate = new Date(arrivalDate);
+  checkoutDate.setDate(checkoutDate.getDate() + nights);
+
   try {
     const conn = await connect_db();
     if (!conn) {
@@ -289,8 +295,8 @@ export async function saveReservationToDb({
       nights,
       source: source ?? "Reservation form",
       status: "confirmed",
-      checkIn: new Date(),
-      availableUntil: new Date(Date.now() + nights * 24 * 60 * 60 * 1000),
+      checkIn: arrivalDate,
+      availableUntil: checkoutDate,
     });
 
     return created.toObject();
@@ -306,12 +312,44 @@ export async function saveReservationToDb({
       nights,
       source: source ?? "Reservation form",
       status: "confirmed",
-      checkIn: new Date(),
-      availableUntil: new Date(Date.now() + nights * 24 * 60 * 60 * 1000),
+      checkIn: arrivalDate,
+      availableUntil: checkoutDate,
       createdAt: new Date(),
     };
     inMemoryReservations.unshift(fallbackItem);
     return fallbackItem;
+  }
+}
+
+export async function getReservationsForGuest(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  try {
+    const conn = await connect_db();
+    if (!conn) throw new Error("MongoDB not connected");
+    const reservations = await ReservationModel.find({ email: normalizedEmail }).sort({ checkIn: -1 }).lean();
+    return reservations.map((reservation) => ({
+      id: String(reservation._id),
+      roomId: Number(reservation.roomId),
+      roomNumber: String(reservation.roomNumber),
+      roomType: String(reservation.roomType),
+      nights: Number(reservation.nights),
+      checkIn: reservation.checkIn instanceof Date ? reservation.checkIn.toISOString() : String(reservation.checkIn),
+      checkOut: reservation.availableUntil instanceof Date ? reservation.availableUntil.toISOString() : String(reservation.availableUntil),
+      status: String(reservation.status || "confirmed"),
+    }));
+  } catch {
+    return inMemoryReservations
+      .filter((reservation) => reservation.email.toLowerCase() === normalizedEmail)
+      .map((reservation) => ({
+        id: reservation._id,
+        roomId: reservation.roomId,
+        roomNumber: reservation.roomNumber,
+        roomType: reservation.roomType,
+        nights: reservation.nights,
+        checkIn: reservation.checkIn.toISOString(),
+        checkOut: reservation.availableUntil.toISOString(),
+        status: reservation.status,
+      }));
   }
 }
 

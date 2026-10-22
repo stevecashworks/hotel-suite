@@ -1,32 +1,42 @@
 "use client";
 
 import { FormEvent, Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, Hotel, LogIn, UserCheck, UserPlus } from "lucide-react";
-import styles from "./page.module.css";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Hotel, LoaderCircle, LockKeyhole } from "lucide-react";
 import SocialAuthButtons from "@/components/socialAuthButtons";
-import { PublicUser } from "@/lib/auth";
+import { dashboardPathForRole, safeReturnPath } from "@/lib/auth-routing";
+import type { PublicUser } from "@/lib/auth";
+import styles from "./page.module.css";
 
 function AuthContent() {
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/register";
-
+  const next = safeReturnPath(searchParams.get("next"));
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [currentUser, setCurrentUser] = useState<PublicUser | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Check if user is already authenticated
   useEffect(() => {
+    const error = searchParams.get("error");
+    if (error === "state") {
+      setMessage("That sign-in attempt expired or could not be verified. Please try again.");
+    } else if (error) {
+      setMessage("Google sign-in could not be completed. Please try again or use your email.");
+    }
+
     fetch("/api/auth")
-      .then((res) => res.json())
-      .then((data) => {
+      .then((response) => response.json())
+      .then((data: { user?: PublicUser | null }) => {
         if (data.user) {
-          setCurrentUser(data.user);
+          window.location.replace(data.user.role === "guest" ? next : dashboardPathForRole(data.user.role));
+          return;
         }
+        setCheckingSession(false);
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => setCheckingSession(false));
+  }, [next, searchParams]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,161 +44,127 @@ function AuthContent() {
     setMessage("");
 
     const form = new FormData(event.currentTarget);
-    const response = await fetch("/api/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: mode,
-        payload: {
-          name: form.get("name"),
-          email: form.get("email"),
-          password: form.get("password"),
-        },
-      }),
-    });
+    try {
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: mode,
+          next,
+          payload: {
+            name: form.get("name"),
+            email: form.get("email"),
+            password: form.get("password"),
+          },
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setMessage(data.error || "We couldn't sign you in. Check your details and try again.");
+        return;
+      }
 
-    const data = await response.json();
-    setBusy(false);
-
-    if (data.error) {
-      setMessage(data.error);
-      return;
+      window.location.assign(data.redirectTo || (data.user?.role === "staff" ? "/admin" : "/dashboard"));
+    } catch {
+      setMessage("A connection issue interrupted sign-in. Please try again.");
+    } finally {
+      setBusy(false);
     }
-
-    window.location.assign(data.user.role === "staff" ? "/admin" : next);
   }
 
-  const handleSocialSuccess = (user: PublicUser) => {
-    setCurrentUser(user);
-    setTimeout(() => {
-      window.location.assign(user.role === "staff" ? "/admin" : next);
-    }, 600);
-  };
-
-  const handleSignOut = async () => {
-    setBusy(true);
-    await fetch("/api/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "logout" }),
-    });
-    setCurrentUser(null);
-    setBusy(false);
-  };
+  if (checkingSession) {
+    return (
+      <main className={styles.loadingPage}>
+        <LoaderCircle className={styles.spinner} size={24} />
+        <span>Checking your session...</span>
+      </main>
+    );
+  }
 
   return (
-    <main className={styles.page}>
-      <section className={styles.card}>
-        <div className={styles.brand}>
-          <Hotel size={22} /> Hotelier.
+    <main className={styles.shell}>
+      <aside className={styles.visualPanel}>
+        <img src="/02_hotel_lobby.jpg" alt="Sunlit hotel lounge overlooking the water" />
+        <div className={styles.visualShade} />
+        <Link href="/" className={styles.brand}><Hotel size={21} /> Hotelier.</Link>
+        <div className={styles.visualCopy}>
+          <p>Hotel Suite Marina · Miami Beach</p>
+          <h1>A stay that feels like yours.</h1>
+          <span>Thoughtful rooms, warm service, and the coast just beyond the glass.</span>
         </div>
+        <span className={styles.imageCredit}>A slower pace, by the water</span>
+      </aside>
 
-        {currentUser ? (
-          <div className="mt-6 text-center">
-            <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-[#ead8bf]/40 border border-[#99724e]/30 flex items-center justify-center text-[#65452e]">
-              {currentUser.avatar ? (
-                <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                <UserCheck size={28} />
-              )}
-            </div>
-            <p className={styles.eyebrow}>Active Session</p>
-            <h1 className="text-2xl font-serif text-[#211914] mt-1">Welcome back, {currentUser.name}</h1>
-            <p className="text-xs text-[#7c5c43] mt-1">
-              Signed in as {currentUser.email} {currentUser.provider ? `(${currentUser.provider})` : ""}
-            </p>
+      <section className={styles.formPanel}>
+        <Link href="/" className={styles.backLink}><ArrowLeft size={15} /> Back to hotel</Link>
+        <div className={styles.formContent}>
+          <p className={styles.eyebrow}>Your Hotelier account</p>
+          <h2>{mode === "login" ? "Welcome back." : "Make room for a getaway."}</h2>
+          <p className={styles.subtitle}>
+            {mode === "login"
+              ? "Sign in to manage your details and book your next stay."
+              : "Create a guest account to make your next booking simpler."}
+          </p>
 
-            <div className="mt-6 flex flex-col gap-2.5">
-              <a
-                href={currentUser.role === "staff" ? "/admin" : next}
-                className="w-full py-3 px-4 rounded-full bg-[#65452e] text-[#fffaf4] font-semibold text-xs tracking-wider uppercase inline-flex items-center justify-center gap-2 hover:bg-[#523724] transition-colors"
-              >
-                <CheckCircle2 size={16} /> Continue to {currentUser.role === "staff" ? "Admin Command Center" : "Guest Portal"}
-              </a>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                disabled={busy}
-                className="w-full py-2.5 px-4 rounded-full border border-[#ead8bf] text-[#65452e] font-semibold text-xs hover:bg-[#ead8bf]/20 transition-colors"
-              >
-                Sign out of account
-              </button>
-            </div>
+          <div className={styles.modeSwitch} role="group" aria-label="Account access mode">
+            <button
+              type="button"
+              aria-pressed={mode === "login"}
+              className={mode === "login" ? styles.modeActive : ""}
+              onClick={() => { setMode("login"); setMessage(""); }}
+            >Sign in</button>
+            <button
+              type="button"
+              aria-pressed={mode === "signup"}
+              className={mode === "signup" ? styles.modeActive : ""}
+              onClick={() => { setMode("signup"); setMessage(""); }}
+            >Create account</button>
           </div>
-        ) : (
-          <>
-            <p className={styles.eyebrow}>{mode === "login" ? "Welcome back" : "Create a guest account"}</p>
-            <h1>{mode === "login" ? "Sign in to continue." : "Make every stay simpler."}</h1>
 
-            <div className={styles.tabs}>
-              <button
-                type="button"
-                onClick={() => setMode("login")}
-                className={mode === "login" ? styles.active : ""}
-              >
-                Sign in
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("signup")}
-                className={mode === "signup" ? styles.active : ""}
-              >
-                Guest sign up
-              </button>
-            </div>
+          <SocialAuthButtons nextUrl={next} />
 
-            {/* Social Authentication Options (Google) */}
-            <SocialAuthButtons nextUrl={next} onSuccess={handleSocialSuccess} showDivider={true} />
-
-            <form onSubmit={submit} className={styles.form}>
-              {mode === "signup" && (
-                <label>
-                  Full name
-                  <input name="name" required autoComplete="name" placeholder="e.g. Eleanor Vance" />
-                </label>
-              )}
+          <form onSubmit={submit} className={styles.form}>
+            {mode === "signup" && (
               <label>
-                Email address
-                <input name="email" type="email" required autoComplete="email" placeholder="name@example.com" />
+                Full name
+                <input name="name" required autoComplete="name" placeholder="Your name" />
               </label>
-              <label>
-                Password
+            )}
+            <label>
+              Email address
+              <input name="email" type="email" required autoComplete="email" placeholder="you@example.com" />
+            </label>
+            <label>
+              Password
+              <span className={styles.passwordField}>
+                <LockKeyhole size={16} aria-hidden="true" />
                 <input
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   minLength={8}
                   autoComplete={mode === "login" ? "current-password" : "new-password"}
                   placeholder="At least 8 characters"
                 />
-              </label>
-              {message && (
-                <p className={styles.error} role="alert">
-                  {message}
-                </p>
-              )}
-              <button disabled={busy}>
-                {mode === "login" ? (
-                  <>
-                    <LogIn size={17} /> Sign in
-                  </>
-                ) : (
-                  <>
-                    <UserPlus size={17} /> Create account
-                  </>
-                )}
-              </button>
-            </form>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </span>
+            </label>
+            {message && <p className={styles.error} role="alert">{message}</p>}
+            <button className={styles.submit} disabled={busy}>
+              {busy ? <LoaderCircle size={17} className={styles.spinner} /> : <ArrowRight size={17} />}
+              {busy ? "Please wait..." : mode === "login" ? "Sign in" : "Create guest account"}
+            </button>
+          </form>
 
-            <p className={styles.note}>
-              Hotel staff: sign in with credentials provided by management, or connect using an authorized account.
-            </p>
-          </>
-        )}
+          <p className={styles.staffNote}>Hotel staff? Sign in with the credentials provided by management.</p>
+        </div>
+        <footer className={styles.footer}>A considered welcome, from the moment you arrive.</footer>
       </section>
     </main>
   );
@@ -198,13 +174,9 @@ export default function AuthPage() {
   return (
     <Suspense
       fallback={
-        <main className={styles.page}>
-          <section className={styles.card}>
-            <div className={styles.brand}>
-              <Hotel size={22} /> Hotelier.
-            </div>
-            <p className="text-sm text-[#7c5c43] mt-4">Loading authentication…</p>
-          </section>
+        <main className={styles.loadingPage}>
+          <LoaderCircle className={styles.spinner} size={24} />
+          <span>Loading sign in...</span>
         </main>
       }
     >

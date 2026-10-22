@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getRequestUser } from "@/lib/auth";
 import {
   getHotelSnapshot,
   placeRoomServiceOrder,
@@ -23,9 +24,10 @@ export async function GET() {
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const user = getRequestUser(request);
 
     if (body.action === "get-rooms") {
       const rooms = await getRoomsFromDb();
@@ -33,6 +35,9 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "add-room") {
+      if (!user || user.role !== "staff") {
+        return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
+      }
       if (!body.payload?.number || !body.payload?.type || !body.payload?.price) {
         return NextResponse.json(
           { error: "Room number, suite type, and price are required." },
@@ -58,6 +63,9 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "toggle-room-availability") {
+      if (!user || user.role !== "staff") {
+        return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
+      }
       const roomId = Number(body.payload?.roomId);
       if (!roomId) {
         return NextResponse.json({ error: "Room ID is required" }, { status: 400 });
@@ -68,6 +76,9 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "delete-room") {
+      if (!user || user.role !== "staff") {
+        return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
+      }
       const roomId = Number(body.payload?.roomId);
       if (!roomId) {
         return NextResponse.json({ error: "Room ID is required" }, { status: 400 });
@@ -92,6 +103,7 @@ export async function POST(request: Request) {
             roomNumber: room.number,
             roomType: room.type,
             nights: Number(body.payload.nights),
+            checkIn: body.payload.checkIn,
             source: body.payload.source ?? "Reservation form",
           });
         }

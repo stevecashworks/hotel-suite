@@ -7,7 +7,6 @@ import { BedDouble, CheckCircle2, Hotel, LoaderCircle } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import styles from "./page.module.css";
 import { PublicUser } from "@/lib/auth";
-import SocialAuthButtons from "@/components/socialAuthButtons";
 
 type Room = {
   id: number;
@@ -23,6 +22,8 @@ function RegisterContent() {
   const searchParams = useSearchParams();
   const urlRoomId = searchParams.get("roomId");
   const urlRoomNumber = searchParams.get("room") || searchParams.get("roomNumber");
+  const dashboardPath = `/dashboard${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+  const signInUrl = `/auth?next=${encodeURIComponent(dashboardPath)}`;
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string>(urlRoomId || "");
@@ -35,7 +36,6 @@ function RegisterContent() {
   const [currentUser, setCurrentUser] = useState<PublicUser | null>(null);
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
-  const [showSocialModal, setShowSocialModal] = useState(false);
 
   useEffect(() => {
     // Check authentication
@@ -119,13 +119,6 @@ function RegisterContent() {
     setConfirmation({ roomNumber: data.roomNumber, availableUntil: data.availableUntil });
   }
 
-  const handleSocialSuccess = (user: PublicUser) => {
-    setCurrentUser(user);
-    setGuestName(user.name);
-    setGuestEmail(user.email);
-    setShowSocialModal(false);
-  };
-
   if (confirmation) {
     return (
       <main className={styles.page}>
@@ -186,10 +179,10 @@ function RegisterContent() {
               </div>
             </div>
             <Link
-              href="/auth"
+              href={currentUser.role === "staff" ? "/admin" : "/dashboard"}
               className="text-[0.72rem] font-semibold text-[#65452e] hover:underline whitespace-nowrap"
             >
-              Switch profile
+              Open account
             </Link>
           </div>
         ) : (
@@ -200,13 +193,10 @@ function RegisterContent() {
                 <strong>Speed up registration:</strong> Sign in with Google to pre-fill your guest details.
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowSocialModal(true)}
+            <Link
+              href={signInUrl}
               className="px-3 py-1.5 rounded-lg bg-[#65452e] text-[#fffaf4] text-[0.75rem] font-semibold whitespace-nowrap hover:bg-[#523724] transition-colors"
-            >
-              Sign in with Google
-            </button>
+            >Sign in or create account</Link>
           </div>
         )}
 
@@ -302,33 +292,6 @@ function RegisterContent() {
         </p>
       </section>
 
-      {/* Social Login Modal for Registration */}
-      {showSocialModal && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4"
-          onClick={() => setShowSocialModal(false)}
-        >
-          <div
-            className="bg-[#fffdfa] border border-[#ead8bf] rounded-2xl max-w-md w-full p-6 shadow-2xl relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-serif font-medium text-[#211914]">Sign in to Hotelier</h3>
-              <button
-                type="button"
-                onClick={() => setShowSocialModal(false)}
-                className="text-[#65452e] hover:text-[#211914] text-sm"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-xs text-[#7c5c43] mb-4">
-              Sign in with Google or social auth to automatically pre-fill your guest profile and track bookings.
-            </p>
-            <SocialAuthButtons onSuccess={handleSocialSuccess} showDivider={false} />
-          </div>
-        </div>
-      )}
     </main>
   );
 }

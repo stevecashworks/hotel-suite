@@ -77,6 +77,7 @@ export const reserveRoom = ({
   phone,
   roomId,
   nights,
+  checkIn,
   source = "Reservation form",
 }: {
   name: string;
@@ -84,10 +85,22 @@ export const reserveRoom = ({
   phone: string;
   roomId: number;
   nights: number;
+  checkIn?: string;
   source?: string;
 }) => {
   if (!name?.trim() || !email?.trim() || !phone?.trim() || !Number.isInteger(nights) || nights < 1) {
     return { error: "Please provide your contact details and a valid stay length" };
+  }
+
+  const arrivalDate = checkIn ? new Date(`${checkIn}T12:00:00`) : new Date();
+  const requestedDate = checkIn || makeReservationDate(0);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(requestedDate) || Number.isNaN(arrivalDate.getTime())) {
+    return { error: "Please choose a valid check-in date." };
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (arrivalDate < today) {
+    return { error: "Check-in date cannot be in the past." };
   }
 
   const room = hotelData.rooms.find((item) => item.id === roomId);
@@ -95,7 +108,7 @@ export const reserveRoom = ({
     return { error: "Selected room is not available" };
   }
 
-  const availableUntil = new Date();
+  const availableUntil = new Date(arrivalDate);
   availableUntil.setDate(availableUntil.getDate() + nights);
 
   hotelData.rooms = hotelData.rooms.map((item) =>
@@ -126,6 +139,7 @@ export const reserveRoom = ({
   return {
     status: "success",
     roomNumber: room.number,
+    checkIn: arrivalDate.toISOString(),
     availableUntil: availableUntil.toISOString(),
     ...getHotelSnapshot(),
   };

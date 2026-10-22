@@ -1,0 +1,112 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Type-check Hotelier mobile",
+			"type": "shell",
+			"command": "C:\\PROGRA~1\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"hotelier_mobile_app",
+				"exec",
+				"--",
+				"tsc",
+				"--noEmit",
+				"-p",
+				"hotelier_mobile_app/tsconfig.json"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			]
+		},
+		{
+			"label": "Check Expo SVG resolution",
+			"type": "shell",
+			"command": "C:\\PROGRA~1\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"hotelier_mobile_app",
+				"exec",
+				"--",
+				"node",
+				"-e",
+				"console.log(require.resolve('react-native-svg')); console.log(require.resolve('lucide-react-native'));"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check Expo SDK package compatibility",
+			"type": "shell",
+			"command": "C:\\PROGRA~1\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"hotelier_mobile_app",
+				"exec",
+				"--",
+				"expo",
+				"install",
+				"--check"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check Expo dependencies in mobile folder",
+			"type": "shell",
+			"command": "cd /d hotelier_mobile_app && C:\\PROGRA~1\\nodejs\\npx.cmd expo install --check",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Sync mobile dependencies",
+			"type": "shell",
+			"command": "cd /d hotelier_mobile_app && C:\\PROGRA~1\\nodejs\\npm.cmd install",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify Expo SVG dependency",
+			"type": "shell",
+			"command": "cd /d hotelier_mobile_app && C:\\PROGRA~1\\nodejs\\npx.cmd expo install --check",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Inspect SVG dependency tree",
+			"type": "shell",
+			"command": "cd /d hotelier_mobile_app && C:\\PROGRA~1\\nodejs\\npm.cmd ls react-native-svg lucide-react-native --depth=0",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Align SVG with Expo SDK",
+			"type": "shell",
+			"command": "cd /d hotelier_mobile_app && C:\\PROGRA~1\\nodejs\\npx.cmd expo install react-native-svg",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify Expo package alignment",
+			"type": "shell",
+			"command": "cd /d hotelier_mobile_app && C:\\PROGRA~1\\nodejs\\npx.cmd expo install --check",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Bundle Hotelier Android app",
+			"type": "shell",
+			"command": "cd /d hotelier_mobile_app && C:\\PROGRA~1\\nodejs\\npx.cmd expo export --platform android --output-dir dist-check",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Repair React Native SVG install",
+			"type": "shell",
+			"command": "cd /d hotelier_mobile_app && C:\\PROGRA~1\\nodejs\\npm.cmd install --force --package-lock=false react-native-svg@15.16.0",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import mongoose from "mongoose";
 import connect_db from "@/lib/mongodb";
 
-export type UserRole = "guest" | "staff";
+export type UserRole = "guest" | "staff" | "kitchen" | "bar" | "room-service";
 export type AuthProvider = "local" | "google";
 
 export type User = {
@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, index: true, lowercase: true, trim: true },
     passwordHash: { type: String },
-    role: { type: String, enum: ["guest", "staff"], default: "guest" },
+    role: { type: String, enum: ["guest", "staff", "kitchen", "bar", "room-service"], default: "guest" },
     provider: { type: String, default: "local" },
     providerId: { type: String },
     avatar: { type: String },
@@ -47,6 +47,7 @@ const UserModel = mongoose.models.User ?? mongoose.model("User", userSchema);
 // In-memory user cache & fallback store
 const users: User[] = [];
 const sessions = new Map<string, { userId: string; expiresAt: number }>();
+const mobileAuthCodes = new Map<string, { userId: string; expiresAt: number }>();
 export const sessionLifetime = 60 * 60 * 24 * 7; // 7 days in seconds
 export const sessionMaxAge = sessionLifetime;
 
@@ -163,6 +164,72 @@ export async function createUser({
   }
 
   return { user: publicUser(newUser) };
+}
+
+export async function provisionStaffUser({ email, role }: { email: string; role: Exclude<UserRole, "guest"> }) {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+    return { error: "Enter a valid staff email address." };
+  }
+  if (normalizedEmail === staffEmail && role !== "staff") {
+    return { error: "The hotel administrator account cannot be assigned a department role." };
+  }
+
+  let user = users.find((item) => item.email === normalizedEmail);
+  try {
+    const conn = await connect_db();
+    if (!conn) {
+      return { error: "Staff accounts cannot be added because the database is unavailable." };
+    }
+
+    const existing = user || await UserModel.findOne({ email: normalizedEmail }).lean();
+    const userId = existing ? ("id" in existing ? existing.id : existing.userId) : randomUUID();
+    const name = existing?.name || normalizedEmail.split("@")[0];
+    const provider = existing?.provider || "local";
+
+    await UserModel.findOneAndUpdate(
+      { email: normalizedEmail },
+      {
+        $set: { role },
+        $setOnInsert: { userId, name, email: normalizedEmail, provider },
+      },
+      { upsert: true, new: true }
+    );
+
+    if (!user) {
+      user = existing
+        ? {
+            id: "id" in existing ? existing.id : existing.userId,
+            name: existing.name,
+            email: existing.email,
+            passwordHash: existing.passwordHash,
+            role,
+            provider: existing.provider || provider,
+            providerId: existing.providerId,
+            avatar: existing.avatar,
+          }
+        : { id: userId, name, email: normalizedEmail, role, provider };
+      users.push(user);
+    } else {
+      user.role = role;
+    }
+  } catch (error) {
+    console.error("Staff account database update failed:", error);
+    return { error: "The staff account could not be saved to the database." };
+  }
+
+  if (!user) {
+    user = {
+      id: randomUUID(),
+      name: normalizedEmail.split("@")[0],
+      email: normalizedEmail,
+      role,
+      provider: "local",
+    };
+    users.push(user);
+  }
+
+  return { user: publicUser(user) };
 }
 
 /**
@@ -341,7 +408,54 @@ export function getSessionUser(token?: string): PublicUser | null {
   return user ? publicUser(user) : null;
 }
 
+export async function findExistingUserByEmail(email: string): Promise<PublicUser | null> {
+  const normalizedEmail = email.trim().toLowerCase();
+  let user = users.find((item) => item.email === normalizedEmail);
+
+  if (!user) {
+    const conn = await connect_db();
+    if (!conn) return null;
+
+    const dbDoc = await UserModel.findOne({ email: normalizedEmail }).lean();
+    if (!dbDoc) return null;
+
+    user = {
+      id: dbDoc.userId,
+      name: dbDoc.name,
+      email: dbDoc.email,
+      passwordHash: dbDoc.passwordHash,
+      role: (dbDoc.role as UserRole) || "guest",
+      provider: dbDoc.provider || "local",
+      providerId: dbDoc.providerId,
+      avatar: dbDoc.avatar,
+    };
+    users.push(user);
+  }
+
+  return publicUser(user);
+}
+
+export function createMobileAuthCode(userId: string) {
+  const code = randomUUID();
+  mobileAuthCodes.set(code, { userId, expiresAt: Date.now() + 60_000 });
+  return code;
+}
+
+export function exchangeMobileAuthCode(code: string) {
+  const entry = mobileAuthCodes.get(code);
+  mobileAuthCodes.delete(code);
+  if (!entry || entry.expiresAt < Date.now()) return null;
+
+  const token = createSession(entry.userId);
+  const user = getSessionUser(token);
+  return user ? { token, user } : null;
+}
+
 export function getRequestUser(request: NextRequest | Request): PublicUser | null {
+  const authorization = request.headers.get("authorization");
+  const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (bearer) return getSessionUser(bearer);
+
   const cookie = request.headers.get("cookie")?.match(/(?:^|; )hotel_session=([^;]+)/)?.[1];
   return getSessionUser(cookie);
 }

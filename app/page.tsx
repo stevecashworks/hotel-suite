@@ -258,29 +258,29 @@ export default function Homepage() {
                   </a>
                 );
               })}
-              <Link href="/register" className={styles.link}>
-                Suites
+              <Link href="/dashboard" className={styles.link}>
+                Book a stay
               </Link>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-row-reverse items-center gap-3">
               {currentUser ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-50 justify-center  h-12  px-2 py-1">
                   <Link
-                    href={currentUser.role === "staff" ? "/admin" : "/register"}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 backdrop-blur-xs text-white text-xs transition-all"
+                    href={currentUser.role === "staff" ? "/admin" : "/dashboard"}
+                    className="flex items-center gap-2 px-3   hover:bg-white/20   text-xs transition-all"
                   >
                     {currentUser.avatar ? (
                       <img
                         src={currentUser.avatar}
                         alt={currentUser.name}
-                        className="w-5 h-5 rounded-full object-cover"
+                        className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
                       <User size={14} />
                     )}
                     <span className="font-medium max-w-[110px] truncate">{currentUser.name}</span>
                     {currentUser.provider === "google" && (
-                      <FcGoogle size={13} title="Google Connected" />
+                      <FcGoogle size={20} title="Google Connected" />
                     )}
                     {currentUser.role === "staff" && (
                       <span className="text-[10px] bg-[#d8b48d] text-[#211914] px-1.5 py-0.2 rounded font-bold">
@@ -300,13 +300,13 @@ export default function Homepage() {
               ) : (
                 <Link
                   href="/auth"
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/25 backdrop-blur-xs text-white text-xs font-semibold tracking-wider transition-all"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] bg-white/15 hover:bg-white/25 border border-white/25 backdrop-blur-xs text-white text-xs font-semibold tracking-wider p-20 transition-all"
                 >
                   <LogIn size={14} />
                   <span>Sign In</span>
                 </Link>
               )}
-              <button type="button" className={styles.button} onClick={handleVisitClick}>
+              <button type="button" className={`${styles.button}   rounded-[10px]`} onClick={handleVisitClick}>
                 Visit
                 <BedDouble size={18} style={{ marginLeft: "10px" }} />
               </button>

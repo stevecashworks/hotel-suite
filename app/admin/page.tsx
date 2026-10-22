@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import {
   AlertCircle,
@@ -21,6 +22,7 @@ import {
   Trash2,
   TrendingUp,
   User as UserIcon,
+  UserPlus,
   Users,
   Wrench,
   X,
@@ -104,6 +106,7 @@ const CURATED_ROOM_PHOTOS = [
 ];
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,6 +119,11 @@ export default function AdminDashboardPage() {
 
   // Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
+  const [staffEmail, setStaffEmail] = useState("");
+  const [staffRole, setStaffRole] = useState<"staff" | "kitchen" | "bar" | "room-service">("kitchen");
+  const [staffSaving, setStaffSaving] = useState(false);
+  const [staffMessage, setStaffMessage] = useState("");
   const [modalSaving, setModalSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -222,21 +230,28 @@ export default function AdminDashboardPage() {
 
     async function initialLoad() {
       try {
-        const [adminRes, hotelRes, authRes] = await Promise.all([
+        const authRes = await fetch("/api/auth");
+        const authData = await authRes.json();
+        if (!authData?.user) {
+          router.replace("/auth?next=%2Fadmin");
+          return;
+        }
+        if (authData.user.role !== "staff") {
+          router.replace(authData.user.role === "guest" ? "/dashboard" : "/staff");
+          return;
+        }
+
+        const [adminRes, hotelRes] = await Promise.all([
           fetch("/api/admin"),
           fetch("/api/hotel"),
-          fetch("/api/auth"),
         ]);
 
         const adminData = await adminRes.json();
         const hotelData = await hotelRes.json();
-        const authData = await authRes.json();
 
         if (!cancelled) {
           setData(adminData);
-          if (authData?.user) {
-            setCurrentUser(authData.user);
-          }
+          setCurrentUser(authData.user);
           if (Array.isArray(hotelData?.rooms)) {
             setRooms(hotelData.rooms);
           } else if (Array.isArray(adminData?.rooms)) {
@@ -257,7 +272,7 @@ export default function AdminDashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
 
   const handleLogout = async () => {
     try {
@@ -269,6 +284,31 @@ export default function AdminDashboardPage() {
       window.location.assign("/auth");
     } catch {
       window.location.assign("/auth");
+    }
+  };
+
+  const handleAddStaff = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setStaffSaving(true);
+    setStaffMessage("");
+    try {
+      const response = await fetch("/api/admin/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: staffEmail, role: staffRole }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setStaffMessage(result.error || "The department account could not be added.");
+        return;
+      }
+      const roleLabel = staffRole === "staff" ? "admin" : staffRole.replace("-", " ");
+      setStaffMessage(`${result.user.email} can sign in with that Google account to open the ${roleLabel} dashboard.`);
+      setStaffEmail("");
+    } catch {
+      setStaffMessage("The account could not be added. Please try again.");
+    } finally {
+      setStaffSaving(false);
     }
   };
 
@@ -499,6 +539,14 @@ export default function AdminDashboardPage() {
               <ExternalLink size={15} />
               Guest Booking Form
             </a>
+
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => { setStaffMessage(""); setIsStaffModalOpen(true); }}
+            >
+              <UserPlus size={15} /> Add Department Staff
+            </button>
 
             <button
               type="button"
@@ -1113,6 +1161,71 @@ export default function AdminDashboardPage() {
                       Save & Publish Room
                     </>
                   )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isStaffModalOpen && (
+        <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="staff-modal-title">
+          <div className={styles.modalCard}>
+            <div className={styles.modalHeader}>
+              <div>
+                <h3 id="staff-modal-title">Add staff account</h3>
+                <p>Assign an email to an administrator or service dashboard.</p>
+              </div>
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                onClick={() => setIsStaffModalOpen(false)}
+                aria-label="Close dialog"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {staffMessage && <div className={`${styles.banner} ${styles.bannerSuccess}`} role="status">{staffMessage}</div>}
+
+            <form onSubmit={handleAddStaff}>
+              <div className={styles.formGrid}>
+                <div className={`${styles.formGroup} ${styles.formFull}`}>
+                  <label className={styles.formLabel} htmlFor="staff-email">Staff email</label>
+                  <input
+                    id="staff-email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    placeholder="team.member@example.com"
+                    value={staffEmail}
+                    onChange={(event) => setStaffEmail(event.target.value)}
+                    className={styles.formInput}
+                  />
+                </div>
+                <div className={`${styles.formGroup} ${styles.formFull}`}>
+                  <label className={styles.formLabel} htmlFor="staff-role">Staff role</label>
+                  <select
+                    id="staff-role"
+                    value={staffRole}
+                    onChange={(event) => setStaffRole(event.target.value as typeof staffRole)}
+                    className={styles.formSelect}
+                  >
+                    <option value="staff">Admin</option>
+                    <option value="kitchen">Kitchen</option>
+                    <option value="bar">Bar</option>
+                    <option value="room-service">Room service</option>
+                  </select>
+                </div>
+              </div>
+              <p className={styles.staffHint}>Staff sign in with Google using this exact email address. Assigning an existing email updates its dashboard role.</p>
+              <div className={styles.modalFooter}>
+                <button type="button" className={styles.secondaryButton} onClick={() => setIsStaffModalOpen(false)}>
+                  Close
+                </button>
+                <button type="submit" className={styles.primaryButton} disabled={staffSaving}>
+                  {staffSaving ? <Loader2 className={styles.spinner} size={15} /> : <UserPlus size={15} />}
+                  {staffSaving ? "Adding..." : "Add staff account"}
                 </button>
               </div>
             </form>
