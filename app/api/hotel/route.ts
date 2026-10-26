@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestUser } from "@/lib/auth";
+import { isAdminRole } from "@/lib/auth-routing";
 import {
   getHotelSnapshot,
   placeRoomServiceOrder,
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.action === "add-room") {
-      if (!user || user.role !== "staff") {
+      if (!user || !isAdminRole(user.role)) {
         return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
       }
       if (!body.payload?.number || !body.payload?.type || !body.payload?.price) {
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.action === "toggle-room-availability") {
-      if (!user || user.role !== "staff") {
+      if (!user || !isAdminRole(user.role)) {
         return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
       }
       const roomId = Number(body.payload?.roomId);
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.action === "delete-room") {
-      if (!user || user.role !== "staff") {
+      if (!user || !isAdminRole(user.role)) {
         return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
       }
       const roomId = Number(body.payload?.roomId);

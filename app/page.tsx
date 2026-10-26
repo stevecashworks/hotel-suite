@@ -26,6 +26,7 @@ import About from "../components/about";
 import EventShowcase from "../components/eventShowcase";
 import SlideShow from "../components/slideShow";
 import { hotelLocation } from "../lib/hotel-data";
+import { isAdminRole } from "@/lib/auth-routing";
 import { PublicUser } from "../lib/auth";
 import styles from "./page.module.css";
 
@@ -266,7 +267,7 @@ export default function Homepage() {
               {currentUser ? (
                 <div className="flex items-center gap-2 w-50 justify-center  h-12  px-2 py-1">
                   <Link
-                    href={currentUser.role === "staff" ? "/admin" : "/dashboard"}
+                    href={isAdminRole(currentUser.role) ? "/admin" : "/dashboard"}
                     className="flex items-center gap-2 px-3   hover:bg-white/20   text-xs transition-all"
                   >
                     {currentUser.avatar ? (
@@ -282,9 +283,9 @@ export default function Homepage() {
                     {currentUser.provider === "google" && (
                       <FcGoogle size={20} title="Google Connected" />
                     )}
-                    {currentUser.role === "staff" && (
+                    {isAdminRole(currentUser.role) && (
                       <span className="text-[10px] bg-[#d8b48d] text-[#211914] px-1.5 py-0.2 rounded font-bold">
-                        Staff
+                        Admin
                       </span>
                     )}
                   </Link>

@@ -16,6 +16,12 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Administrator account
+
+Set `HOTEL_ADMIN_EMAIL`, `HOTEL_ADMIN_PASSWORD`, and `MONGODB_URI` in `.env.local`, then run `npm run seed:admin` to create or update the administrator in MongoDB. The password is stored as a salted hash. The repeatable seed command also migrates legacy `staff`-role administrators to `admin`.
+
+Guests cannot use the mobile app. All other account roles, including administrators and department staff, can sign in and are routed to their role's dashboard.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

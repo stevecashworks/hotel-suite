@@ -6,15 +6,13 @@ import {
   getRequestUser,
 } from "@/lib/auth";
 
-const mobileStaffRoles = ["staff", "kitchen", "bar", "room-service"];
-
 export async function GET(request: NextRequest) {
   const user = getRequestUser(request);
   if (!user) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
-  if (!mobileStaffRoles.includes(user.role)) {
-    return NextResponse.json({ error: "This app is for hotel staff only." }, { status: 403 });
+  if (user.role === "guest") {
+    return NextResponse.json({ error: "Guest accounts cannot use the mobile app." }, { status: 403 });
   }
 
   return NextResponse.json({ user });
@@ -31,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     if (body?.action !== "login") {
       return NextResponse.json(
-        { error: "Staff accounts are created by hotel management. Sign in with your assigned account." },
+        { error: "Hotel team accounts are created by management. Sign in with your assigned account." },
         { status: 400 }
       );
     }
@@ -48,8 +46,8 @@ export async function POST(request: NextRequest) {
     if (!result.user) {
       return NextResponse.json({ error: "Authentication failed." }, { status: 401 });
     }
-    if (!mobileStaffRoles.includes(result.user.role)) {
-      return NextResponse.json({ error: "This app is for hotel staff only." }, { status: 403 });
+    if (result.user.role === "guest") {
+      return NextResponse.json({ error: "Guest accounts cannot use the mobile app." }, { status: 403 });
     }
 
     return NextResponse.json({ user: result.user, token: createSession(result.user.id) });

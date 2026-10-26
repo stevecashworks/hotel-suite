@@ -14,8 +14,12 @@ export function safeReturnPath(value: unknown, fallback = "/dashboard") {
   }
 }
 
+export function isAdminRole(role: UserRole) {
+  return role === "admin" || role === "staff";
+}
+
 export function dashboardPathForRole(role: UserRole) {
-  if (role === "staff") return "/admin";
+  if (isAdminRole(role)) return "/admin";
   if (role === "guest") return "/dashboard";
   return "/staff";
 }

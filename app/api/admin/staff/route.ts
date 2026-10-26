@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestUser, provisionStaffUser, type UserRole } from "@/lib/auth";
+import { isAdminRole } from "@/lib/auth-routing";
 
-const staffRoles: UserRole[] = ["staff", "kitchen", "bar", "room-service"];
+const staffRoles: UserRole[] = ["kitchen", "bar", "room-service"];
 
 export async function POST(request: NextRequest) {
   const user = getRequestUser(request);
-  if (!user || user.role !== "staff") {
+  if (!user || !isAdminRole(user.role)) {
     return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
   }
 
@@ -17,7 +18,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Choose a valid staff role." }, { status: 400 });
     }
 
-    const result = await provisionStaffUser({ email, role: role as Exclude<UserRole, "guest"> });
+    const result = await provisionStaffUser({
+      email,
+      role: role as Exclude<UserRole, "guest" | "admin" | "staff">,
+    });
     return result.error
       ? NextResponse.json(result, { status: 400 })
       : NextResponse.json({ status: "success", user: result.user });

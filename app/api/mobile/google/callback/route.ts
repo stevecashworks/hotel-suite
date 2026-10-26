@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createMobileAuthCode,
   findExistingUserByEmail,
-  type UserRole,
 } from "@/lib/auth";
 import { getAuthAppOrigin } from "@/lib/auth-origin";
-
-const mobileStaffRoles: UserRole[] = ["staff", "kitchen", "bar", "room-service"];
 
 export async function GET(request: NextRequest) {
   const appOrigin = getAuthAppOrigin(request);
@@ -70,8 +67,8 @@ export async function GET(request: NextRequest) {
     }
 
     const user = await findExistingUserByEmail(profile.email);
-    if (!user || !mobileStaffRoles.includes(user.role)) {
-      return redirectToApp({ error: "staff_account_required" });
+    if (!user || user.role === "guest") {
+      return redirectToApp({ error: "mobile_account_required" });
     }
 
     return redirectToApp({ code: createMobileAuthCode(user.id) });

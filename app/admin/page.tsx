@@ -32,6 +32,7 @@ import styles from "./page.module.css";
 import RevenuePerRoomChart from "@/components/revenuePerRoomChart";
 import { RevenueAnalytics } from "@/lib/reservation-db";
 import { PublicUser } from "@/lib/auth";
+import { isAdminRole } from "@/lib/auth-routing";
 
 export type RoomStatus = "available" | "booked" | "maintenance";
 
@@ -121,7 +122,7 @@ export default function AdminDashboardPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [staffEmail, setStaffEmail] = useState("");
-  const [staffRole, setStaffRole] = useState<"staff" | "kitchen" | "bar" | "room-service">("kitchen");
+  const [staffRole, setStaffRole] = useState<"kitchen" | "bar" | "room-service">("kitchen");
   const [staffSaving, setStaffSaving] = useState(false);
   const [staffMessage, setStaffMessage] = useState("");
   const [modalSaving, setModalSaving] = useState(false);
@@ -236,7 +237,7 @@ export default function AdminDashboardPage() {
           router.replace("/auth?next=%2Fadmin");
           return;
         }
-        if (authData.user.role !== "staff") {
+        if (!isAdminRole(authData.user.role)) {
           router.replace(authData.user.role === "guest" ? "/dashboard" : "/staff");
           return;
         }
@@ -302,7 +303,7 @@ export default function AdminDashboardPage() {
         setStaffMessage(result.error || "The department account could not be added.");
         return;
       }
-      const roleLabel = staffRole === "staff" ? "admin" : staffRole.replace("-", " ");
+      const roleLabel = staffRole.replace("-", " ");
       setStaffMessage(`${result.user.email} can sign in with that Google account to open the ${roleLabel} dashboard.`);
       setStaffEmail("");
     } catch {

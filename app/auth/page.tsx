@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Hotel, LoaderCircle, LockKeyhole } from "lucide-react";
 import SocialAuthButtons from "@/components/socialAuthButtons";
-import { dashboardPathForRole, safeReturnPath } from "@/lib/auth-routing";
+import { dashboardPathForRole, isAdminRole, safeReturnPath } from "@/lib/auth-routing";
 import type { PublicUser } from "@/lib/auth";
 import styles from "./page.module.css";
 
@@ -64,7 +64,7 @@ function AuthContent() {
         return;
       }
 
-      window.location.assign(data.redirectTo || (data.user?.role === "staff" ? "/admin" : "/dashboard"));
+      window.location.assign(data.redirectTo || (data.user && isAdminRole(data.user.role) ? "/admin" : "/dashboard"));
     } catch {
       setMessage("A connection issue interrupted sign-in. Please try again.");
     } finally {

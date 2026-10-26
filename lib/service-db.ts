@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import mongoose from "mongoose";
 import connect_db from "@/lib/mongodb";
 import type { PublicUser, UserRole } from "@/lib/auth";
+import { isAdminRole } from "@/lib/auth-routing";
 
 export type ServiceDepartment = "kitchen" | "bar";
 export type ServiceOrderStatus = "new" | "preparing" | "ready" | "delivered" | "cancelled";
@@ -143,7 +144,7 @@ function formatCall(doc: Record<string, unknown>): RoomServiceCall {
 }
 
 function visibleTo(user: PublicUser, department: ServiceDepartment) {
-  return user.role === "staff" || user.role === department;
+  return isAdminRole(user.role) || user.role === department;
 }
 
 export async function getServiceSnapshot(user: PublicUser) {
@@ -167,7 +168,7 @@ export async function getServiceSnapshot(user: PublicUser) {
     menuCache = menuDocs.map((doc) => formatMenu(doc as unknown as Record<string, unknown>));
     const orderQuery = user.role === "guest"
       ? { guestEmail: user.email }
-      : user.role === "staff"
+      : isAdminRole(user.role)
       ? {}
       : { department: user.role };
     const callQuery = user.role === "guest"
@@ -294,7 +295,7 @@ export async function updateServiceOrder(id: string, status: ServiceOrderStatus,
     const conn = await connect_db();
     if (conn) {
       const doc = await OrderModel.findOne({ orderId: id }).lean();
-      if (!doc || (role !== "staff" && doc.department !== role)) return { error: "Order not found for this department." };
+      if (!doc || (!isAdminRole(role) && doc.department !== role)) return { error: "Order not found for this department." };
       await OrderModel.updateOne({ orderId: id }, { $set: { status } });
       const updated = await OrderModel.findOne({ orderId: id }).lean();
       const formatted = formatOrder(updated as unknown as Record<string, unknown>);
@@ -304,7 +305,7 @@ export async function updateServiceOrder(id: string, status: ServiceOrderStatus,
   } catch (error) {
     console.warn("Service order update persistence failed:", error);
   }
-  if (!order || (role !== "staff" && order.department !== role)) return { error: "Order not found for this department." };
+  if (!order || (!isAdminRole(role) && order.department !== role)) return { error: "Order not found for this department." };
   order.status = status;
   order.updatedAt = new Date();
   return { order };
@@ -341,7 +342,7 @@ export async function createRoomServiceCall({ user, room, offer }: { user: Publi
 }
 
 export async function answerRoomServiceCall({ id, answer, role }: { id: string; answer: string; role: UserRole }) {
-  if (role !== "room-service" && role !== "staff") return { error: "Room-service access is required." };
+  if (role !== "room-service" && !isAdminRole(role)) return { error: "Room-service access is required." };
   try {
     const conn = await connect_db();
     if (conn) {

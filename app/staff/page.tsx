@@ -85,7 +85,7 @@ export default function DepartmentDashboardPage() {
           router.replace("/auth?next=%2Fstaff");
           return;
         }
-        if (!["kitchen", "bar", "room-service", "staff"].includes(signedInUser.role)) {
+        if (!["admin", "kitchen", "bar", "room-service", "staff"].includes(signedInUser.role)) {
           router.replace("/dashboard");
           return;
         }

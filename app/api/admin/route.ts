@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestUser } from "@/lib/auth";
+import { isAdminRole } from "@/lib/auth-routing";
 import { getDashboardMetricsFromDb } from "@/lib/reservation-db";
 import { addRoomToDb, deleteRoomFromDb, toggleRoomStatusInDb } from "@/lib/room-db";
 
 export async function GET(request: NextRequest) {
   const user = getRequestUser(request);
-  if (!user || user.role !== "staff") {
+  if (!user || !isAdminRole(user.role)) {
     return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
   }
   const data = await getDashboardMetricsFromDb();
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = getRequestUser(request);
-  if (!user || user.role !== "staff") {
+  if (!user || !isAdminRole(user.role)) {
     return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
   }
   try {

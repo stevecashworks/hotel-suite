@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestUser } from "@/lib/auth";
+import { isAdminRole } from "@/lib/auth-routing";
 import { getReservationsForGuest } from "@/lib/reservation-db";
 import {
   addMenuItem,
@@ -19,7 +20,7 @@ const orderStatuses: ServiceOrderStatus[] = ["new", "preparing", "ready", "deliv
 export async function GET(request: NextRequest) {
   const user = getRequestUser(request);
   if (!user) return NextResponse.json({ error: "Sign in to continue." }, { status: 401 });
-  if (user.role === "guest" || user.role === "staff" || user.role === "kitchen" || user.role === "bar" || user.role === "room-service") {
+  if (user.role === "guest" || isAdminRole(user.role) || user.role === "kitchen" || user.role === "bar" || user.role === "room-service") {
     const snapshot = await getServiceSnapshot(user);
     const reservations = user.role === "guest" ? await getReservationsForGuest(user.email) : [];
     return NextResponse.json({ ...snapshot, reservations });
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.action === "update-order") {
-      if (user.role !== "staff" && user.role !== "kitchen" && user.role !== "bar") {
+      if (!isAdminRole(user.role) && user.role !== "kitchen" && user.role !== "bar") {
         return NextResponse.json({ error: "Department staff access is required." }, { status: 403 });
       }
       const status = String(payload.status) as ServiceOrderStatus;
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.action === "end-audio-call") {
-      if (user.role !== "guest" && user.role !== "room-service" && user.role !== "staff") {
+      if (user.role !== "guest" && user.role !== "room-service" && !isAdminRole(user.role)) {
         return NextResponse.json({ error: "Room-service access is required." }, { status: 403 });
       }
       const result = await endRoomServiceCall({ id: String(payload.callId || ""), user });

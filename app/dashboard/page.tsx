@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { isAdminRole } from "@/lib/auth-routing";
 import { ArrowUpRight, Bell, BedDouble, CalendarDays, CheckCircle2, ClipboardList, Headphones, Hotel, LogOut, Mic, Phone, UtensilsCrossed, UserRound, Wine, X } from "lucide-react";
 import { PublicUser } from "@/lib/auth";
 import type { RoomServiceCall, ServiceDepartment, ServiceMenuItem, ServiceOrder } from "@/lib/service-db";
@@ -109,7 +110,7 @@ export default function GuestDashboardPage() {
           return;
         }
         if (authData.user.role !== "guest") {
-          router.replace(authData.user.role === "staff" ? "/admin" : "/staff");
+          router.replace(isAdminRole(authData.user.role) ? "/admin" : "/staff");
           return;
         }
 

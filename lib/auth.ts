@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import mongoose from "mongoose";
 import connect_db from "@/lib/mongodb";
 
-export type UserRole = "guest" | "staff" | "kitchen" | "bar" | "room-service";
+export type UserRole = "guest" | "admin" | "staff" | "kitchen" | "bar" | "room-service";
 export type AuthProvider = "local" | "google";
 
 export type User = {
@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, index: true, lowercase: true, trim: true },
     passwordHash: { type: String },
-    role: { type: String, enum: ["guest", "staff", "kitchen", "bar", "room-service"], default: "guest" },
+    role: { type: String, enum: ["guest", "admin", "staff", "kitchen", "bar", "room-service"], default: "guest" },
     provider: { type: String, default: "local" },
     providerId: { type: String },
     avatar: { type: String },
@@ -51,19 +51,10 @@ const mobileAuthCodes = new Map<string, { userId: string; expiresAt: number }>()
 export const sessionLifetime = 60 * 60 * 24 * 7; // 7 days in seconds
 export const sessionMaxAge = sessionLifetime;
 
-const staffEmail = (process.env.HOTEL_STAFF_EMAIL ?? "admin@hotel-suite.local").trim().toLowerCase();
-const staffPassword = process.env.HOTEL_STAFF_PASSWORD ?? "HotelSuiteAdmin123";
+const adminEmail = (process.env.HOTEL_ADMIN_EMAIL ?? "").trim().toLowerCase();
 
-if (staffEmail && staffPassword) {
-  users.push({
-    id: "hotel-manager",
-    name: "Hotel Manager",
-    email: staffEmail,
-    passwordHash: hashPassword(staffPassword),
-    role: "staff",
-    provider: "local",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
-  });
+function roleForAccount(email: string, role: UserRole): UserRole {
+  return adminEmail && email.trim().toLowerCase() === adminEmail ? "admin" : role;
 }
 
 function hashPassword(password: string) {
@@ -111,8 +102,8 @@ export async function createUser({
   if (!name.trim() || !/^\S+@\S+\.\S+$/.test(normalizedEmail) || password.length < 8) {
     return { error: "Enter your name, a valid email address, and a password of at least 8 characters." };
   }
-  if (role === "staff") {
-    return { error: "Staff accounts must be created by hotel management." };
+  if (role !== "guest") {
+    return { error: "Staff and administrator accounts must be created by hotel management." };
   }
 
   // Check in-memory first
@@ -166,12 +157,18 @@ export async function createUser({
   return { user: publicUser(newUser) };
 }
 
-export async function provisionStaffUser({ email, role }: { email: string; role: Exclude<UserRole, "guest"> }) {
+export async function provisionStaffUser({
+  email,
+  role,
+}: {
+  email: string;
+  role: Exclude<UserRole, "guest" | "admin" | "staff">;
+}) {
   const normalizedEmail = email.trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
     return { error: "Enter a valid staff email address." };
   }
-  if (normalizedEmail === staffEmail && role !== "staff") {
+  if (normalizedEmail === adminEmail) {
     return { error: "The hotel administrator account cannot be assigned a department role." };
   }
 
@@ -183,6 +180,9 @@ export async function provisionStaffUser({ email, role }: { email: string; role:
     }
 
     const existing = user || await UserModel.findOne({ email: normalizedEmail }).lean();
+    if (existing && (existing.role === "admin" || existing.role === "staff")) {
+      return { error: "Administrator accounts cannot be assigned a department role." };
+    }
     const userId = existing ? ("id" in existing ? existing.id : existing.userId) : randomUUID();
     const name = existing?.name || normalizedEmail.split("@")[0];
     const provider = existing?.provider || "local";
@@ -240,6 +240,9 @@ export async function authenticate(email: string, password: string) {
 
   // Try in-memory first
   let user = users.find((item) => item.email === normalizedEmail);
+  if (user) {
+    user.role = roleForAccount(user.email, user.role);
+  }
 
   // If not found in memory, check MongoDB
   if (!user) {
@@ -253,7 +256,7 @@ export async function authenticate(email: string, password: string) {
             name: dbDoc.name,
             email: dbDoc.email,
             passwordHash: dbDoc.passwordHash,
-            role: (dbDoc.role as UserRole) || "guest",
+            role: roleForAccount(dbDoc.email, (dbDoc.role as UserRole) || "guest"),
             provider: dbDoc.provider || "local",
             avatar: dbDoc.avatar,
           };
@@ -295,6 +298,9 @@ export async function findOrCreateSocialUser({
 
   // Check if user exists in memory
   let user = users.find((item) => item.email === normalizedEmail);
+  if (user) {
+    user.role = roleForAccount(user.email, user.role);
+  }
 
   // Check MongoDB if not found in memory
   if (!user) {
@@ -308,7 +314,7 @@ export async function findOrCreateSocialUser({
             name: dbDoc.name,
             email: dbDoc.email,
             passwordHash: dbDoc.passwordHash,
-            role: (dbDoc.role as UserRole) || "guest",
+            role: roleForAccount(dbDoc.email, (dbDoc.role as UserRole) || "guest"),
             provider: dbDoc.provider || provider,
             providerId: dbDoc.providerId || providerId,
             avatar: dbDoc.avatar || avatar,
@@ -359,7 +365,7 @@ export async function findOrCreateSocialUser({
     id: randomUUID(),
     name: cleanName,
     email: normalizedEmail,
-    role,
+    role: roleForAccount(normalizedEmail, role),
     provider,
     providerId,
     avatar:
@@ -411,6 +417,9 @@ export function getSessionUser(token?: string): PublicUser | null {
 export async function findExistingUserByEmail(email: string): Promise<PublicUser | null> {
   const normalizedEmail = email.trim().toLowerCase();
   let user = users.find((item) => item.email === normalizedEmail);
+  if (user) {
+    user.role = roleForAccount(user.email, user.role);
+  }
 
   if (!user) {
     const conn = await connect_db();
@@ -424,7 +433,7 @@ export async function findExistingUserByEmail(email: string): Promise<PublicUser
       name: dbDoc.name,
       email: dbDoc.email,
       passwordHash: dbDoc.passwordHash,
-      role: (dbDoc.role as UserRole) || "guest",
+      role: roleForAccount(dbDoc.email, (dbDoc.role as UserRole) || "guest"),
       provider: dbDoc.provider || "local",
       providerId: dbDoc.providerId,
       avatar: dbDoc.avatar,

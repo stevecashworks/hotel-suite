@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { BedDouble, CheckCircle2, Hotel, LoaderCircle } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import styles from "./page.module.css";
+import { isAdminRole } from "@/lib/auth-routing";
 import { PublicUser } from "@/lib/auth";
 
 type Room = {
@@ -179,7 +180,7 @@ function RegisterContent() {
               </div>
             </div>
             <Link
-              href={currentUser.role === "staff" ? "/admin" : "/dashboard"}
+              href={isAdminRole(currentUser.role) ? "/admin" : "/dashboard"}
               className="text-[0.72rem] font-semibold text-[#65452e] hover:underline whitespace-nowrap"
             >
               Open account
