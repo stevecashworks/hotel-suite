@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRequestUser } from "@/lib/auth";
 import { isAdminRole } from "@/lib/auth-routing";
 import { getReservationsForGuest } from "@/lib/reservation-db";
+import { recordHotelEvent } from "@/lib/hotel-events";
 import {
   addMenuItem,
   answerRoomServiceCall,
@@ -48,6 +49,13 @@ export async function POST(request: NextRequest) {
         room: String(payload.room || ""),
         quantity: Number(payload.quantity),
       });
+      if (result.order) {
+        await recordHotelEvent({
+          type: "service.order",
+          title: "New room-service order",
+          message: `${result.order.guestName} ordered ${result.order.itemName} for Room ${result.order.room}.`,
+        });
+      }
       return result.error
         ? NextResponse.json(result, { status: 400 })
         : NextResponse.json({ status: "success", ...result });
@@ -69,6 +77,11 @@ export async function POST(request: NextRequest) {
         price,
         imageUrl: user.role === "bar" ? "/13_sky_bar.jpg" : "/07_dining.jpg",
       });
+      await recordHotelEvent({
+        type: "service.menu",
+        title: "Menu updated",
+        message: `${item.name} was added to the ${user.role} menu.`,
+      });
       return NextResponse.json({ status: "success", item });
     }
 
@@ -77,6 +90,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Department staff access is required." }, { status: 403 });
       }
       const item = await setMenuAvailability(String(payload.itemId || ""), Boolean(payload.available), user.role);
+      if (item) {
+        await recordHotelEvent({
+          type: "service.menu",
+          title: "Menu availability changed",
+          message: `${item.name} is now ${item.available ? "available" : "unavailable"}.`,
+        });
+      }
       return item
         ? NextResponse.json({ status: "success", item })
         : NextResponse.json({ error: "Menu item not found." }, { status: 404 });
@@ -91,6 +111,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Choose a valid order status." }, { status: 400 });
       }
       const result = await updateServiceOrder(String(payload.orderId || ""), status, user.role);
+      if (result.order) {
+        await recordHotelEvent({
+          type: "service.order",
+          title: "Service order updated",
+          message: `Room ${result.order.room}: ${result.order.itemName} is ${result.order.status}.`,
+        });
+      }
       return result.error
         ? NextResponse.json(result, { status: 404 })
         : NextResponse.json({ status: "success", ...result });
@@ -107,6 +134,13 @@ export async function POST(request: NextRequest) {
         room: String(payload.room || ""),
         offer: String(payload.offer || ""),
       });
+      if (result.call) {
+        await recordHotelEvent({
+          type: "service.call",
+          title: "Room-service call requested",
+          message: `${result.call.guestName} in Room ${result.call.room} requested assistance.`,
+        });
+      }
       return result.error
         ? NextResponse.json(result, { status: 400 })
         : NextResponse.json({ status: "success", ...result });
@@ -118,6 +152,13 @@ export async function POST(request: NextRequest) {
         answer: String(payload.answer || ""),
         role: user.role,
       });
+      if (result.call) {
+        await recordHotelEvent({
+          type: "service.call",
+          title: "Room-service call answered",
+          message: `The call from Room ${result.call.room} was answered.`,
+        });
+      }
       return result.error
         ? NextResponse.json(result, { status: 403 })
         : NextResponse.json({ status: "success", ...result });
@@ -128,6 +169,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Room-service access is required." }, { status: 403 });
       }
       const result = await endRoomServiceCall({ id: String(payload.callId || ""), user });
+      if (result.call) {
+        await recordHotelEvent({
+          type: "service.call",
+          title: "Room-service call ended",
+          message: `The call from Room ${result.call.room} has ended.`,
+        });
+      }
       return result.error
         ? NextResponse.json(result, { status: 404 })
         : NextResponse.json({ status: "success", ...result });

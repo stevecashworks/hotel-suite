@@ -15,6 +15,7 @@ import {
   deleteRoomFromDb,
 } from "@/lib/room-db";
 import { saveReservationToDb } from "@/lib/reservation-db";
+import { recordHotelEvent } from "@/lib/hotel-events";
 
 export async function GET() {
   const rooms = await getRoomsFromDb();
@@ -47,6 +48,11 @@ export async function POST(request: NextRequest) {
       }
       try {
         const newRoom = await addRoomToDb(body.payload);
+        await recordHotelEvent({
+          type: "room.created",
+          title: "Room added",
+          message: `Room ${newRoom.number} (${newRoom.type}) was added to the inventory.`,
+        });
         const rooms = await getRoomsFromDb();
         return NextResponse.json({
           status: "success",
@@ -72,6 +78,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Room ID is required" }, { status: 400 });
       }
       const updated = await toggleRoomStatusInDb(roomId, body.payload?.status);
+      if (updated) {
+        await recordHotelEvent({
+          type: updated.status === "maintenance" ? "room.maintenance" : "room.available",
+          title: "Room status changed",
+          message: `Room ${updated.number} is now ${updated.status}.`,
+        });
+      }
       const rooms = await getRoomsFromDb();
       return NextResponse.json({ status: "success", room: updated, rooms });
     }
@@ -85,6 +98,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Room ID is required" }, { status: 400 });
       }
       await deleteRoomFromDb(roomId);
+      await recordHotelEvent({
+        type: "room.deleted",
+        title: "Room removed",
+        message: `Room ${roomId} was removed from the inventory.`,
+      });
       const rooms = await getRoomsFromDb();
       return NextResponse.json({ status: "success", rooms });
     }
@@ -107,6 +125,11 @@ export async function POST(request: NextRequest) {
             checkIn: body.payload.checkIn,
             source: body.payload.source ?? "Reservation form",
           });
+          await recordHotelEvent({
+            type: "reservation.created",
+            title: "New reservation",
+            message: `${body.payload.name} reserved Room ${room.number} for ${Number(body.payload.nights)} night(s).`,
+          });
         }
       }
       const rooms = await getRoomsFromDb();
@@ -114,15 +137,40 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.action === "guest-scan") {
-      return NextResponse.json(registerGuestScan(body.payload));
+      const result = registerGuestScan(body.payload);
+      if (result.guest) {
+        await recordHotelEvent({
+          type: "guest.check-in",
+          title: "Guest checked in",
+          message: `${result.guest.name} checked in to Room ${result.guest.room}.`,
+        });
+      }
+      return NextResponse.json(result);
     }
 
     if (body.action === "inventory-update") {
-      return NextResponse.json(updateInventoryStock(body.payload.itemId, body.payload.delta));
+      const result = updateInventoryStock(body.payload.itemId, body.payload.delta);
+      const item = result.inventory.find((entry) => entry.id === Number(body.payload.itemId));
+      if (item) {
+        await recordHotelEvent({
+          type: "inventory.updated",
+          title: "Inventory updated",
+          message: `${item.name} stock changed to ${item.stock}.`,
+        });
+      }
+      return NextResponse.json(result);
     }
 
     if (body.action === "room-service-order") {
-      return NextResponse.json(placeRoomServiceOrder(body.payload));
+      const result = placeRoomServiceOrder(body.payload);
+      if (result.status === "ordered") {
+        await recordHotelEvent({
+          type: "service.order",
+          title: "Room service order",
+          message: `${result.itemName} was ordered for Room ${result.roomNumber}.`,
+        });
+      }
+      return NextResponse.json(result);
     }
 
     return NextResponse.json({ error: "Unsupported action" }, { status: 400 });
