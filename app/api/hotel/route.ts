@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     if (body.action === "room-service-order") {
       const result = placeRoomServiceOrder(body.payload);
-      if (result.status === "ordered") {
+      if ("status" in result && result.status === "ordered") {
         await recordHotelEvent({
           type: "service.order",
           title: "Room service order",
