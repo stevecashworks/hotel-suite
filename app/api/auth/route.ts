@@ -24,7 +24,7 @@ export function getCookieConfig(request?: NextRequest | Request) {
 }
 
 export async function GET(request: NextRequest) {
-  const user = getRequestUser(request);
+  const user = await getRequestUser(request);
   const socialConfig = getSocialAuthConfig();
   return NextResponse.json({ user, socialConfig });
 }
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.action === "logout") {
-      deleteSession(request.cookies.get("hotel_session")?.value);
+      await deleteSession(request.cookies.get("hotel_session")?.value);
       const response = NextResponse.json({ status: "success" });
       response.cookies.set("hotel_session", "", { ...cookieOptions, maxAge: 0 });
       return response;
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       ? safeReturnPath(body.next)
       : dashboardPathForRole(result.user.role);
     const response = NextResponse.json({ user: result.user, redirectTo });
-    response.cookies.set("hotel_session", createSession(result.user.id), cookieOptions);
+    response.cookies.set("hotel_session", await createSession(result.user.id), cookieOptions);
     return response;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Authentication error";

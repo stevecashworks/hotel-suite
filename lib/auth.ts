@@ -1,4 +1,4 @@
-import { randomUUID, scryptSync, timingSafeEqual } from "crypto";
+import { createHash, randomUUID, scryptSync, timingSafeEqual } from "crypto";
 import type { NextRequest } from "next/server";
 import mongoose from "mongoose";
 import connect_db from "@/lib/mongodb";
@@ -44,6 +44,23 @@ const userSchema = new mongoose.Schema(
 
 const UserModel = mongoose.models.User ?? mongoose.model("User", userSchema);
 
+const sessionSchema = new mongoose.Schema({
+  tokenHash: { type: String, required: true, unique: true },
+  userId: { type: String, required: true, index: true },
+  expiresAt: { type: Date, required: true, expires: 0 },
+});
+
+const SessionModel = mongoose.models.AuthSession ?? mongoose.model("AuthSession", sessionSchema);
+
+const mobileAuthCodeSchema = new mongoose.Schema({
+  codeHash: { type: String, required: true, unique: true },
+  userId: { type: String, required: true, index: true },
+  expiresAt: { type: Date, required: true, expires: 0 },
+});
+
+const MobileAuthCodeModel =
+  mongoose.models.MobileAuthCode ?? mongoose.model("MobileAuthCode", mobileAuthCodeSchema);
+
 // In-memory user cache & fallback store
 const users: User[] = [];
 const sessions = new Map<string, { userId: string; expiresAt: number }>();
@@ -82,6 +99,16 @@ export function publicUser(user: User): PublicUser {
     provider: user.provider || "local",
     avatar: user.avatar,
   };
+}
+
+function hashSessionToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function requirePersistentSessionStore() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Session storage is unavailable. Check the MongoDB connection.");
+  }
 }
 
 /**
@@ -397,21 +424,63 @@ export async function findOrCreateSocialUser({
   return { user: publicUser(newUser) };
 }
 
-export function createSession(userId: string) {
+export async function createSession(userId: string) {
   const token = randomUUID();
-  sessions.set(token, { userId, expiresAt: Date.now() + sessionLifetime * 1000 });
+  const expiresAt = Date.now() + sessionLifetime * 1000;
+  const connection = await connect_db();
+  if (!connection) {
+    requirePersistentSessionStore();
+    sessions.set(token, { userId, expiresAt });
+    return token;
+  }
+
+  await SessionModel.create({
+    tokenHash: hashSessionToken(token),
+    userId,
+    expiresAt: new Date(expiresAt),
+  });
+  sessions.set(token, { userId, expiresAt });
   return token;
 }
 
-export function getSessionUser(token?: string): PublicUser | null {
+export async function getSessionUser(token?: string): Promise<PublicUser | null> {
   if (!token) return null;
-  const session = sessions.get(token);
-  if (!session || session.expiresAt < Date.now()) {
-    sessions.delete(token);
-    return null;
+
+  const connection = await connect_db();
+  if (!connection) {
+    requirePersistentSessionStore();
+    const session = sessions.get(token);
+    if (!session || session.expiresAt < Date.now()) {
+      sessions.delete(token);
+      return null;
+    }
+    const user = users.find((item) => item.id === session.userId);
+    return user ? publicUser(user) : null;
   }
-  const user = users.find((item) => item.id === session.userId);
-  return user ? publicUser(user) : null;
+
+  const session = await SessionModel.findOne({
+    tokenHash: hashSessionToken(token),
+    expiresAt: { $gt: new Date() },
+  }).lean();
+  if (!session) return null;
+
+  const dbDoc = await UserModel.findOne({ userId: session.userId }).lean();
+  if (!dbDoc) return null;
+
+  const user: User = {
+    id: dbDoc.userId,
+    name: dbDoc.name,
+    email: dbDoc.email,
+    passwordHash: dbDoc.passwordHash,
+    role: roleForAccount(dbDoc.email, (dbDoc.role as UserRole) || "guest"),
+    provider: dbDoc.provider || "local",
+    providerId: dbDoc.providerId,
+    avatar: dbDoc.avatar,
+  };
+  const cachedUserIndex = users.findIndex((item) => item.id === user.id);
+  if (cachedUserIndex < 0) users.push(user);
+  else users[cachedUserIndex] = user;
+  return publicUser(user);
 }
 
 export async function findExistingUserByEmail(email: string): Promise<PublicUser | null> {
@@ -444,23 +513,48 @@ export async function findExistingUserByEmail(email: string): Promise<PublicUser
   return publicUser(user);
 }
 
-export function createMobileAuthCode(userId: string) {
+export async function createMobileAuthCode(userId: string) {
   const code = randomUUID();
-  mobileAuthCodes.set(code, { userId, expiresAt: Date.now() + 60_000 });
+  const expiresAt = Date.now() + 60_000;
+  const connection = await connect_db();
+  if (!connection) {
+    requirePersistentSessionStore();
+    mobileAuthCodes.set(code, { userId, expiresAt });
+    return code;
+  }
+
+  await MobileAuthCodeModel.create({
+    codeHash: hashSessionToken(code),
+    userId,
+    expiresAt: new Date(expiresAt),
+  });
   return code;
 }
 
-export function exchangeMobileAuthCode(code: string) {
-  const entry = mobileAuthCodes.get(code);
-  mobileAuthCodes.delete(code);
-  if (!entry || entry.expiresAt < Date.now()) return null;
+export async function exchangeMobileAuthCode(code: string) {
+  const connection = await connect_db();
+  let userId: string | undefined;
+  if (!connection) {
+    requirePersistentSessionStore();
+    const entry = mobileAuthCodes.get(code);
+    mobileAuthCodes.delete(code);
+    if (!entry || entry.expiresAt < Date.now()) return null;
+    userId = entry.userId;
+  } else {
+    const entry = await MobileAuthCodeModel.findOneAndDelete({
+      codeHash: hashSessionToken(code),
+      expiresAt: { $gt: new Date() },
+    }).lean();
+    userId = entry?.userId;
+  }
+  if (!userId) return null;
 
-  const token = createSession(entry.userId);
-  const user = getSessionUser(token);
+  const token = await createSession(userId);
+  const user = await getSessionUser(token);
   return user ? { token, user } : null;
 }
 
-export function getRequestUser(request: NextRequest | Request): PublicUser | null {
+export async function getRequestUser(request: NextRequest | Request): Promise<PublicUser | null> {
   const authorization = request.headers.get("authorization");
   const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (bearer) return getSessionUser(bearer);
@@ -469,8 +563,15 @@ export function getRequestUser(request: NextRequest | Request): PublicUser | nul
   return getSessionUser(cookie);
 }
 
-export function deleteSession(token?: string) {
-  if (token) sessions.delete(token);
+export async function deleteSession(token?: string) {
+  if (!token) return;
+  sessions.delete(token);
+  const connection = await connect_db();
+  if (!connection) {
+    requirePersistentSessionStore();
+    return;
+  }
+  await SessionModel.deleteOne({ tokenHash: hashSessionToken(token) });
 }
 
 /**

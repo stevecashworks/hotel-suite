@@ -4,7 +4,7 @@ import { isAdminRole } from '@/lib/auth-routing';
 import { getHotelEvents, registerHotelPushDevice, unregisterHotelPushDevice } from '@/lib/hotel-events';
 
 export async function GET(request: NextRequest) {
-  const user = getRequestUser(request);
+  const user = await getRequestUser(request);
   if (!user || !isAdminRole(user.role)) {
     return NextResponse.json({ error: 'Administrator access is required.' }, { status: 403 });
   }
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = getRequestUser(request);
+  const user = await getRequestUser(request);
   if (!user || !isAdminRole(user.role)) {
     return NextResponse.json({ error: 'Administrator access is required.' }, { status: 403 });
   }

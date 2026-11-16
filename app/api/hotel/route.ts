@@ -29,7 +29,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const user = getRequestUser(request);
+    const user = await getRequestUser(request);
 
     if (body.action === "get-rooms") {
       const rooms = await getRoomsFromDb();

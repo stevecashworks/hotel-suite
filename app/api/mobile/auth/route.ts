@@ -7,7 +7,7 @@ import {
 } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
-  const user = getRequestUser(request);
+  const user = await getRequestUser(request);
   if (!user) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     if (body?.action === "logout") {
       const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
-      deleteSession(token);
+      await deleteSession(token);
       return NextResponse.json({ status: "success" });
     }
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Guest accounts cannot use the mobile app." }, { status: 403 });
     }
 
-    return NextResponse.json({ user: result.user, token: createSession(result.user.id) });
+    return NextResponse.json({ user: result.user, token: await createSession(result.user.id) });
   } catch {
     return NextResponse.json(
       { error: "The mobile sign-in request could not be completed." },

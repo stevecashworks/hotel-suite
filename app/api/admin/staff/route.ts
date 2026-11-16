@@ -6,7 +6,7 @@ import { recordHotelEvent } from "@/lib/hotel-events";
 const staffRoles: UserRole[] = ["kitchen", "bar", "room-service"];
 
 export async function POST(request: NextRequest) {
-  const user = getRequestUser(request);
+  const user = await getRequestUser(request);
   if (!user || !isAdminRole(user.role)) {
     return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
   }

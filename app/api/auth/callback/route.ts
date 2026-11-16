@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       role: "guest",
     });
 
-    const sessionToken = createSession(user.id);
+    const sessionToken = await createSession(user.id);
     const destination = user.role === "guest" ? next : dashboardPathForRole(user.role);
     const response = NextResponse.redirect(new URL(destination, appOrigin));
     response.cookies.set("hotel_session", sessionToken, {

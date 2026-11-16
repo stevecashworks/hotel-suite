@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Google sign-in code is missing." }, { status: 400 });
     }
 
-    const session = exchangeMobileAuthCode(body.code);
+    const session = await exchangeMobileAuthCode(body.code);
     if (!session) {
       return NextResponse.json({ error: "Google sign-in code expired. Please try again." }, { status: 401 });
     }

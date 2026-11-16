@@ -19,7 +19,7 @@ import {
 const orderStatuses: ServiceOrderStatus[] = ["new", "preparing", "ready", "delivered", "cancelled"];
 
 export async function GET(request: NextRequest) {
-  const user = getRequestUser(request);
+  const user = await getRequestUser(request);
   if (!user) return NextResponse.json({ error: "Sign in to continue." }, { status: 401 });
   if (user.role === "guest" || isAdminRole(user.role) || user.role === "kitchen" || user.role === "bar" || user.role === "room-service") {
     const snapshot = await getServiceSnapshot(user);
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = getRequestUser(request);
+  const user = await getRequestUser(request);
   if (!user) return NextResponse.json({ error: "Sign in to continue." }, { status: 401 });
 
   try {

@@ -5,8 +5,11 @@ import { getDashboardMetricsFromDb } from "@/lib/reservation-db";
 import { addRoomToDb, deleteRoomFromDb, toggleRoomStatusInDb } from "@/lib/room-db";
 
 export async function GET(request: NextRequest) {
-  const user = getRequestUser(request);
-  if (!user || !isAdminRole(user.role)) {
+  const user = await getRequestUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  }
+  if (!isAdminRole(user.role)) {
     return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
   }
   const data = await getDashboardMetricsFromDb();
@@ -14,8 +17,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = getRequestUser(request);
-  if (!user || !isAdminRole(user.role)) {
+  const user = await getRequestUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  }
+  if (!isAdminRole(user.role)) {
     return NextResponse.json({ error: "Administrator access is required." }, { status: 403 });
   }
   try {

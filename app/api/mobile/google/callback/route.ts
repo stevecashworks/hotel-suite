@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
       return redirectToApp({ error: "mobile_account_required" });
     }
 
-    return redirectToApp({ code: createMobileAuthCode(user.id) });
+    return redirectToApp({ code: await createMobileAuthCode(user.id) });
   } catch (error) {
     console.error("Mobile Google sign-in failed:", error);
     return redirectToApp({ error: "google" });
